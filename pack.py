@@ -23,8 +23,9 @@ html = f"""<!DOCTYPE html>
   <div id="app">
     <section id="menu">
       <div class="brand">
-        <h1>夜灯将眠</h1>
+        <h1 id="brandTitle">夜灯将眠</h1>
         <p>把通明的城市，一盏盏关掉</p>
+        <p id="progress"></p>
       </div>
       <div id="levels"></div>
     </section>
@@ -37,11 +38,13 @@ html = f"""<!DOCTYPE html>
         <button class="tool" id="speedBtn" type="button">▶ 1×</button>
         <button class="tool" id="soundBtn" type="button">♪</button>
       </div>
+      <div id="loadRail"><i id="loadFill"></i></div>
       <div id="stage">
         <canvas id="board"></canvas>
         <div id="toast"></div>
         <div id="slots"></div>
         <div id="coach" hidden></div>
+        <div id="fx"></div>
       </div>
       <div id="tray"></div>
 
@@ -64,6 +67,7 @@ html = f"""<!DOCTYPE html>
         <div class="panel">
           <div class="en">CITY ASLEEP</div>
           <h2 id="winTitle">晚安</h2>
+          <div id="winStars">★★★</div>
           <p id="winSub">城市已入睡</p>
           <div class="row">
             <button class="btn ghost" id="winMenu" type="button">菜单</button>

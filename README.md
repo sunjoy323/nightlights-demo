@@ -1,13 +1,17 @@
 # 夜灯将眠
 
-把通明的像素城市，一盏盏关掉。给微信小游戏包装用的 H5 试玩 demo。
+把通明的城市，一盏盏关掉。一页自包含 H5 demo（无 CDN）。
 
-手机浏览器打开：https://sunjoy323.github.io/nightlights-demo/
+- 玩法结构对齐「蚂蚁搬画」：点最前排工单，电工自动关露在外面的同色灯，电闸 5 槽。
+- 20 关，夜景主题各不相同；每 3–4 关引入新机关或组合（问号工单、钥匙锁楼、电梯遮挡、总闸片区、开关联动、双槽招牌、闪烁灯笼）。
+- 全部 20 关经求解器验证可解。进度和星级存在 `localStorage`。
+- 测试用：在选关页连点标题「夜灯将眠」5 次，可全部解锁。
 
-单文件即可玩：`index.html`（不依赖 CDN）。`core.js` / `game.js` / `style.css` 是源码，改完后运行 `python3 pack.py` 会重新打进 `index.html`。
+本地预览：
 
 ```
-node verify.mjs   # 求解器检查全部 5 关可解
+python3 -m http.server 8080 --directory .
 ```
 
-玩法对照《蚂蚁搬画》：底下托盘点最前排工单，工单飞进 5 个电闸槽，小电工从露在外面的窗户往里关灯。槽位全被关不到的颜色占住就是「电网过载」。失败页可以时光倒流，或看一段模拟广告加一个槽。
+打包：`python3 pack.py`（把 `core.js` / `game.js` / `style.css` 打进 `index.html`）。
+验关：`node verify.mjs`。
