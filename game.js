@@ -1,11 +1,14 @@
 /* 夜灯将眠 — game shell. Depends on NightCore. */
 (function () {
   const C = window.NightCore;
+  const G = window.NightGen;
   const $ = (s, r) => (r || document).querySelector(s);
   const $$ = (s, r) => [...(r || document).querySelectorAll(s)];
 
   const SLOT_N = 5;
   const SAVE_KEY = "nightlights-save-v1";
+  const PAGE = 20;
+  const MAX_MENU = 1000;
 
   let screen = "menu";
   let li = 0;
@@ -48,6 +51,10 @@
   let decor = null;
   let titleClicks = [];
   let cars = [];
+  let menuPage = 0;
+  let preview = null;
+  let holdTimer = 0;
+  let holdCi = -1;
 
   const board = $("#board");
   const ctx = board.getContext("2d");
@@ -74,17 +81,27 @@
     satellite:   { sky0:"#08141c", sky1:"#102028", sky2:"#183040", fog:"rgba(60,200,200,0.14)", signs:["卫星城","新区"], accent:"#7ee7ff", wall:["#0c1c24","#142830"] },
     newyear:     { sky0:"#14081c", sky1:"#281030", sky2:"#4a1848", fog:"rgba(255,200,80,0.20)", signs:["跨年","倒计时"], accent:"#ffd56a", wall:["#1c1028","#2c1838"] },
   };
-  function themeOf(L) { return THEMES[(L && (L.theme || L.id)) || "river"] || THEMES.river; }
+  function themeOf(L) {
+    if (L && L.themeDef && L.themeDef.sky0) {
+      const d = L.themeDef;
+      return { sky0: d.sky0, sky1: d.sky1, sky2: d.sky2, accent: d.accent || "#ffd56a", wall: d.wall || ["#1a1628", "#241e38"], signs: d.signs || [L.name], water: !!d.water, fog: null };
+    }
+    const th = THEMES[(L && (L.theme || L.id)) || "river"] || THEMES.river;
+    return { ...th, fog: null };
+  }
+  function levelAt(i) { return G && G.getLevel ? G.getLevel(i) : C.LEVELS[i]; }
+
 
   /* ---------- save ---------- */
   function loadSave() {
     try {
       const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
-      if (s && s.v === 1 && s.stars) return { v: 1, stars: s.stars, unlocked: s.unlocked || 1, all: !!s.all };
+      if (s && s.v === 1 && s.stars) return { v: 1, stars: s.stars, unlocked: s.unlocked || 1, all: !!s.all, seenIntro: s.seenIntro || {} };
     } catch (e) {}
-    return { v: 1, stars: {}, unlocked: 1, all: false };
+    return { v: 1, stars: {}, unlocked: 1, all: false, seenIntro: {} };
   }
   let save = loadSave();
+  if (!save.seenIntro) save.seenIntro = {};
   function persist() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
   }
@@ -253,8 +270,8 @@
     if (!LV) { geo = { w, h }; return; }
     const slotBand = 70;
     const streetY = h - slotBand;
-    const sky = Math.max(96, h * 0.22);
-    const cityH = Math.max(80, streetY - sky - 8);
+    const sky = Math.max(52, h * 0.11);
+    const cityH = Math.max(100, streetY - sky - 6);
     const cs = Math.max(9, Math.min((w - 12) / LV.W, cityH / LV.H));
     const ox = (w - cs * LV.W) / 2;
     const oy = streetY - 8 - cs * LV.H;
@@ -344,21 +361,42 @@
     screen = "menu";
     LV = null;
     $("#game").hidden = true;
+    if ($("#album")) $("#album").hidden = true;
     $("#menu").hidden = false;
     renderMenu();
   }
 
+  function pageCount() {
+    if (save.all) return Math.ceil(MAX_MENU / PAGE);
+    const vis = Math.max(PAGE, Math.min(MAX_MENU, (save.unlocked || 1) + PAGE - 1));
+    return Math.max(1, Math.ceil(vis / PAGE));
+  }
   function renderMenu() {
     const cleared = Object.keys(save.stars).length;
     const prog = $("#progress");
-    if (prog) prog.textContent = save.all ? `已入睡 ${cleared} / ${C.LEVELS.length} 座城 · 测试解锁` : `已入睡 ${cleared} / ${C.LEVELS.length} 座城`;
+    const pages = pageCount();
+    if (menuPage >= pages) menuPage = pages - 1;
+    if (menuPage < 0) menuPage = 0;
+    const chap = menuPage + 1;
+    const chapName = G && G.chapterName ? G.chapterName(menuPage * PAGE + 1) : ("第 " + chap + " 章");
+    if (prog) prog.textContent = save.all
+      ? `已入睡 ${cleared} 座城 · 图鉴 ${cleared} · 测试解锁`
+      : `已入睡 ${cleared} 座城 · 图鉴可回看`;
+    if ($("#pageLab")) $("#pageLab").textContent = `第 ${chap} 章 · ${chapName}`;
+    if ($("#pagePrev")) $("#pagePrev").disabled = menuPage <= 0;
+    if ($("#pageNext")) $("#pageNext").disabled = menuPage >= pages - 1;
     const box = $("#levels");
     box.innerHTML = "";
-    C.LEVELS.forEach((L, i) => {
+    const start = menuPage * PAGE;
+    for (let i = start; i < start + PAGE; i++) {
+      if (i >= MAX_MENU) break;
+      let L;
+      try { L = levelAt(i); } catch (e) { continue; }
+      if (!L) continue;
       const open = isOpenLevel(i);
       const b = document.createElement("button");
       const starsN = save.stars[i] || 0;
-      b.className = "card" + (starsN ? " done" : "") + (open && !starsN && i === save.unlocked - 1 ? " start" : "") + (open ? "" : " locked");
+      b.className = "card" + (starsN ? " done" : "") + (open && !starsN && i === (save.unlocked - 1) ? " start" : "") + (open ? "" : " locked") + (L.landmark ? " landmark" : "");
       b.type = "button";
       const cv = document.createElement("canvas");
       cv.width = 280;
@@ -366,16 +404,14 @@
       drawThumb(cv, L, open);
       const meta = document.createElement("div");
       meta.className = "meta";
-      meta.innerHTML = `<span class="no">第 ${i + 1} 关 · ${L.tier}</span><strong>${L.name}</strong>`;
+      meta.innerHTML = `<span class="no">第 ${i + 1} 关 · ${L.tier || ""}</span><strong>${L.name}</strong>`;
+      if (L.landmark) meta.innerHTML += `<span class="badge">地标</span>`;
       if (!open) meta.innerHTML += `<span class="lock">锁</span>`;
       else if (starsN) meta.innerHTML += `<span class="star">${"★".repeat(starsN)}${"☆".repeat(3 - starsN)}</span>`;
       b.append(cv, meta);
-      b.onclick = () => {
-        if (!open) { /* stay */ return; }
-        openLevel(i);
-      };
+      b.onclick = () => { if (open) openLevel(i); };
       box.appendChild(b);
-    });
+    }
   }
 
   function drawThumb(cv, L, open) {
@@ -414,13 +450,19 @@
     li = i;
     screen = "game";
     $("#menu").hidden = true;
+    if ($("#album")) $("#album").hidden = true;
     $("#game").hidden = false;
     loadLevel(i);
   }
 
   function loadLevel(i) {
-    const src = C.LEVELS[i];
+    const src = levelAt(i);
     LV = src;
+    preview = null;
+    holdTimer = 0;
+    holdCi = -1;
+    if ($("#previewTag")) $("#previewTag").hidden = true;
+    if ($("#introCard")) $("#introCard").hidden = true;
     grid = C.cloneGrid(src.grid);
     cols = C.cloneCols(src.cols);
     slots = Array(SLOT_N).fill(null);
@@ -457,7 +499,7 @@
     updateHud();
     resize();
     if (src.coach) startCoach();
-    else toast(src.hint, true);
+    else if (!showIntroIfNeeded(i)) toast(src.hint, true);
   }
 
   function snapshot() {
@@ -584,8 +626,32 @@
         btn.style.color = hidden ? "#dcd6ff" : colr.ink;
         btn.dataset.k = k;
         btn.textContent = hidden ? "?" : String(t.n);
-        if (k === 0) btn.onclick = () => tapBox(ci, k);
-        else { btn.tabIndex = -1; btn.classList.add("back"); }
+        if (k === 0) {
+          const canWork = !!C.findTarget(grid, t.c, unlocked, takes);
+          const isGate = colorIsGate(t.c);
+          if (!canWork) {
+            btn.classList.add("waitish");
+            const z = document.createElement("span");
+            z.className = "prezz";
+            z.textContent = t.duo && !C.canPlaceTicket(slots, slotCount, t) ? "双槽" : "等";
+            btn.appendChild(z);
+          }
+          if (isGate) {
+            btn.classList.add("gate");
+            const m = document.createElement("span");
+            m.className = "mechmark";
+            m.textContent = gateMark(t.c);
+            btn.appendChild(m);
+          }
+          if (colorHasBlink(t.c)) {
+            const m = document.createElement("span");
+            m.className = "mechmark";
+            m.style.right = "3px"; m.style.left = "auto";
+            m.textContent = "闪";
+            btn.appendChild(m);
+          }
+          bindHold(btn, ci);
+        } else { btn.tabIndex = -1; btn.classList.add("back"); }
         d.appendChild(btn);
       });
       if (col.length > 3) {
@@ -907,7 +973,7 @@
     const starsN = (usedRewind && usedAd) ? 1 : (usedRewind || usedAd) ? 2 : 3;
     const prev = save.stars[li] || 0;
     if (starsN > prev) save.stars[li] = starsN;
-    if (save.unlocked < li + 2) save.unlocked = Math.min(C.LEVELS.length, li + 2);
+    if (save.unlocked < li + 2) save.unlocked = Math.min(MAX_MENU, li + 2);
     persist();
     SFX.win();
     if (LV && LV.theme === "newyear") {
@@ -1035,21 +1101,12 @@
     ctx.beginPath(); ctx.arc(mx - mr * 0.28, my - mr * 0.18, mr * 0.22, 0, Math.PI * 2); ctx.fill();
     ctx.beginPath(); ctx.arc(mx + mr * 0.22, my + mr * 0.2, mr * 0.14, 0, Math.PI * 2); ctx.fill();
 
-    // warm fog, fades as city sleeps
-    if (th.fog) {
-      ctx.fillStyle = th.fog.replace(/[\d.]+\)$/, (0.22 * (1 - k * 0.85)).toFixed(3) + ")");
-      // fog string may not match; fallback
-      const fogA = 0.18 * (1 - k * 0.85);
-      const fg = ctx.createLinearGradient(0, (geo.sky || 80), 0, (geo.streetY || h));
-      fg.addColorStop(0, hexA(th.accent, 0));
-      fg.addColorStop(0.55, hexA(th.accent, fogA * 0.45));
-      fg.addColorStop(1, hexA(th.accent, fogA));
-      ctx.fillStyle = fg;
-      ctx.fillRect(0, 0, w, h);
-    }
-
     drawSkyline(k, th);
-    if (LV && grid) drawCity(k, th);
+    if (LV && grid) {
+      drawLandmark(k, th);
+      drawCity(k, th);
+      drawMechOverlay();
+    }
     drawStreet(k, th);
 
     for (const a of afterglow) {
@@ -1127,8 +1184,8 @@
           }
         }
       };
-      paint(decor.skylineFar || [], 0.92, 0.28, 0.35);
-      paint(decor.skylineMid || decor.skyline || [], 0.78, 0.5, 0.12);
+      paint(decor.skylineFar || [], 0.70, 0.08, 0.62);
+      paint(decor.skylineMid || decor.skyline || [], 0.52, 0.12, 0.50);
       skyKey = key;
     }
     ctx.drawImage(skyCv, 0, 0);
@@ -1196,14 +1253,24 @@
           const ay = oy + (b.y1 + 0.15) * cs - 5;
           if (ax < x + bw - 8) ctx.fillRect(ax, ay, 8, 5);
         }
-        // neon sign
-        if (b.sign && bw > cs * 2) {
-          const sy = oy + b.signY * cs + 2;
+        // neon signboard sits on the roof, not over windows
+        if (b.sign && bw > cs * 1.6) {
+          const tw = Math.min(bw - 4, Math.max(28, b.sign.length * Math.max(8, cs * 0.7) + 10));
+          const thh = Math.max(11, cs * 0.7);
+          const sx = x + (bw - tw) / 2;
+          const sy = y - thh - 6;
+          ctx.fillStyle = "rgba(10,8,20,0.88)";
+          ctx.fillRect(sx, sy, tw, thh);
+          ctx.strokeStyle = hexA(th.accent, 0.55 + 0.35 * (1 - k));
+          ctx.lineWidth = 1;
+          ctx.strokeRect(sx + 0.5, sy + 0.5, tw - 1, thh - 1);
           ctx.save();
-          ctx.font = `bold ${Math.max(8, cs * 0.55)}px "PingFang SC","Noto Sans SC",sans-serif`;
-          ctx.fillStyle = hexA(th.accent, 0.25 + 0.55 * (1 - k));
+          ctx.font = `bold ${Math.max(8, cs * 0.5)}px "PingFang SC","Noto Sans SC",sans-serif`;
+          ctx.fillStyle = hexA(th.accent, 0.55 + 0.4 * (1 - k));
           ctx.textAlign = "center";
-          ctx.fillText(b.sign, x + bw / 2, sy);
+          ctx.textBaseline = "middle";
+          ctx.fillText(b.sign, x + bw / 2, sy + thh / 2);
+          ctx.textBaseline = "alphabetic";
           ctx.restore();
         }
       }
@@ -1419,8 +1486,15 @@
       const vy = geo.streetY;
       if (Math.abs((onStreet ? w.x : vx) - w.vanX) < geo.w) drawVan(onStreet ? w.x : w.vanX, vy, col, w.a > 0);
     }
+    let bumpX = 0, bumpY = 0;
+    const near = workers.filter((o) => Math.hypot(o.x - w.x, o.y - w.y) < 18);
+    const idx = near.indexOf(w);
+    if (near.length > 1 && idx >= 0) {
+      bumpX = (idx - (near.length - 1) / 2) * 12;
+      bumpY = (idx % 2) * 8;
+    }
     ctx.save();
-    ctx.translate(w.x, w.y);
+    ctx.translate(w.x + bumpX, w.y + bumpY);
     ctx.scale(1.65, 1.65);
     const walk = Math.sin(w.ph) * 2;
     // wand
@@ -1484,6 +1558,498 @@
     ctx.restore();
   }
 
+
+  function colorIsGate(color) {
+    if (!grid) return false;
+    for (const row of grid) for (const c of row)
+      if (c && c.c === color && (c.key || (c.awaken && c.awaken.length))) return true;
+    return false;
+  }
+  function gateMark(color) {
+    if (!grid) return "";
+    for (const row of grid) for (const c of row) {
+      if (c && c.c === color && (c.key || (c.awaken && c.awaken.length))) {
+        if (c.kind === "button") return "梯";
+        if (c.kind === "breaker") return "闸";
+        if (c.kind === "switch" || (c.awaken && c.awaken.length)) return "亮";
+        if (c.kind === "beacon") return "标";
+        return "钥";
+      }
+    }
+    return "钥";
+  }
+  function colorHasBlink(color) {
+    if (!grid) return false;
+    for (const row of grid) for (const c of row) if (c && c.on && c.c === color && c.blink) return true;
+    return false;
+  }
+  function mechHue(kind, lockId) {
+    const map = (G && G.MECH_META) || {};
+    if (kind === "shutter") return (map.shutter || {}).hue || "#7ee7ff";
+    if (kind === "breaker" || kind === "zone") return (map.breaker || {}).hue || "#8dffc1";
+    if (kind === "switch" || kind === "screen") return (map.awaken || {}).hue || "#c9a6ff";
+    if (kind === "button") return (map.shutter || {}).hue || "#7ee7ff";
+    return (map.lock || {}).hue || "#ffd56a";
+  }
+
+  function bindHold(btn, ci) {
+    const start = (e) => {
+      if (over || won || paused) return;
+      if (e && e.pointerType === "mouse" && e.button !== 0) return;
+      holdCi = ci;
+      clearTimeout(holdTimer);
+      holdTimer = setTimeout(() => startPreview(ci), 280);
+    };
+    const end = (e) => {
+      const ready = holdCi === ci;
+      const had = preview && preview.ci === ci;
+      clearTimeout(holdTimer);
+      holdTimer = 0;
+      holdCi = -1;
+      if (had) { endPreview(); return; }
+      if (ready) tapBox(ci, 0);
+    };
+    const cancel = () => {
+      clearTimeout(holdTimer);
+      holdTimer = 0;
+      holdCi = -1;
+      endPreview();
+    };
+    btn.onpointerdown = start;
+    btn.onpointerup = end;
+    btn.onpointercancel = cancel;
+  }
+  function startPreview(ci) {
+    if (!cols[ci] || !cols[ci][0] || !grid) return;
+    const t = cols[ci][0];
+    const cells = [];
+    for (let y = 0; y < LV.H; y++)
+      for (let x = 0; x < LV.W; x++)
+        if (grid[y][x] && grid[y][x].on && grid[y][x].c === t.c && C.isReachable(grid, x, y, unlocked, takes))
+          cells.push([x, y]);
+    preview = { ci, cells, waiting: !cells.length, duo: !!t.duo, canPlace: C.canPlaceTicket(slots, slotCount, t) };
+    let tag = $("#previewTag");
+    if (!tag) {
+      tag = document.createElement("div");
+      tag.id = "previewTag";
+      $("#stage").appendChild(tag);
+    }
+    tag.hidden = false;
+    tag.textContent = !preview.canPlace
+      ? (t.duo ? "这块招牌要两个挨着的槽" : "电闸槽满了")
+      : (preview.waiting ? "进槽后还不能关，小电工会等" : "进槽后可以开工 · " + cells.length + " 盏");
+    const btn = $(`.tcol[data-c="${ci}"] .box[data-k="0"]`);
+    if (btn) btn.classList.add("previewing");
+  }
+  function endPreview() {
+    if (!preview) return;
+    const ci = preview.ci;
+    preview = null;
+    const tag = $("#previewTag");
+    if (tag) tag.hidden = true;
+    $$(".box.previewing").forEach((b) => b.classList.remove("previewing"));
+  }
+
+  function introHTML(id) {
+    if (id === "lock") return '<div class="city"></div><div class="key">钥</div><div class="line"></div><div class="lock">锁</div>';
+    if (id === "shutter") return '<div class="city"></div><div class="key">梯</div><div class="door"></div>';
+    if (id === "breaker") return '<div class="city"></div><div class="key">闸</div><div class="line"></div><div class="lock">停</div>';
+    if (id === "awaken") return '<div class="city"></div><div class="key">亮</div><div class="dark"></div>';
+    if (id === "blink") return '<div class="city"></div><div class="lan"></div>';
+    if (id === "duo") return '<div class="city"></div><div class="slot2"><i></i><i></i></div>';
+    if (id === "hidden") return '<div class="city"></div><div class="q">?</div>';
+    return '<div class="city"></div>';
+  }
+  function showIntroIfNeeded(i) {
+    if (!G || !G.introFor) return false;
+    const intro = G.introFor(i + 1);
+    if (!intro) return false;
+    save.seenIntro = save.seenIntro || {};
+    if (save.seenIntro[intro.id]) return false;
+    const el = $("#introCard");
+    if (!el) return false;
+    $("#introTitle").textContent = intro.title;
+    $("#introLine").textContent = intro.line;
+    const anim = $("#introAnim");
+    anim.className = "intro-anim " + intro.id;
+    anim.innerHTML = introHTML(intro.id);
+    el.hidden = false;
+    return true;
+  }
+  function dismissIntro() {
+    const intro = G && G.introFor ? G.introFor(li + 1) : null;
+    if (intro) { save.seenIntro = save.seenIntro || {}; save.seenIntro[intro.id] = true; persist(); }
+    if ($("#introCard")) $("#introCard").hidden = true;
+    if (LV && LV.hint) toast(LV.hint, true);
+  }
+
+  function openAlbum() {
+    screen = "album";
+    $("#game").hidden = true;
+    $("#menu").hidden = true;
+    $("#album").hidden = false;
+    const ids = Object.keys(save.stars).map(Number).sort((a, b) => a - b);
+    $("#albumProg").textContent = ids.length ? ("已收下 " + ids.length + " 张夜景明信片") : "通关后，关掉的城市会收进这里";
+    const box = $("#postcards");
+    box.innerHTML = "";
+    // show collected, plus landmark placeholders up to current chapter
+    const maxI = Math.max(ids.length ? ids[ids.length - 1] : 0, 19);
+    const show = new Set(ids);
+    for (let k = 9; k <= maxI; k += 10) show.add(k);
+    const list = [...show].sort((a, b) => a - b);
+    if (!list.length) {
+      const p = document.createElement("div");
+      p.className = "postcard empty";
+      p.innerHTML = '<div class="meta"><strong>还是空的</strong><span>先去关一盏灯吧</span></div>';
+      box.appendChild(p);
+      return;
+    }
+    list.forEach((i) => {
+      const has = save.stars[i] != null;
+      const L = levelAt(i);
+      const b = document.createElement("button");
+      b.className = "postcard" + (L.landmark ? " landmark" : "") + (has ? "" : " empty");
+      b.type = "button";
+      const cv = document.createElement("canvas");
+      cv.width = 280; cv.height = 160;
+      drawThumb(cv, L, has);
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      const st = save.stars[i] || 0;
+      meta.innerHTML = `<strong>${has ? L.name : "？？？"}</strong>` +
+        (has ? `<span class="star">${"★".repeat(st)}</span>` : `<span>地标还未入睡</span>`);
+      b.append(cv, meta);
+      if (has) b.onclick = () => viewCard(i);
+      box.appendChild(b);
+    });
+  }
+  function viewCard(i) {
+    const L = levelAt(i);
+    const st = save.stars[i] || 0;
+    $("#cardName").textContent = L.name;
+    $("#cardQuote").textContent = L.quote || "城市已入睡。";
+    $("#cardStars").textContent = "★".repeat(st) + "☆".repeat(3 - st);
+    drawThumb($("#cardCanvas"), L, true);
+    $("#cardView").hidden = false;
+  }
+
+  function drawLandmark(k, th) {
+    if (!LV || !geo) return;
+    const type = LV.landmarkType
+      || (LV.theme === "newyear" ? "tower" : LV.theme === "fishery" ? "crane"
+        : LV.theme === "bridge" ? "bridge" : LV.theme === "park" ? "wheel"
+        : LV.theme === "airport" ? "wing" : LV.theme === "plant" ? "stack"
+        : LV.theme === "cinema" ? "hall" : LV.theme === "onsen" ? "roof"
+        : null);
+    if (!type && !LV.landmark) return;
+    const kind = type || "tower";
+    const special = !!LV.landmark;
+    const s = special ? 1.4 : 1.0;
+    let x = geo.w * 0.78, ground = (geo.oy || 80) - 4;
+    if (grid && LV && geo.cs) {
+      let bestRoof = 0, bestX = x;
+      const x0 = Math.floor(LV.W * 0.55);
+      for (let gx = x0; gx < LV.W; gx++) {
+        let roof = LV.H;
+        for (let gy = 0; gy < LV.H; gy++) {
+          if (grid[gy][gx]) { roof = gy; break; }
+        }
+        if (roof >= bestRoof) { bestRoof = roof; bestX = geo.ox + (gx + 0.5) * geo.cs; }
+      }
+      x = bestX;
+      ground = geo.oy + bestRoof * geo.cs - 2;
+    }
+    if (kind === "bridge" || kind === "pier" || kind === "crane") {
+      x = Math.min(x, geo.w * 0.7);
+    }
+    ctx.save();
+    ctx.globalAlpha = special ? 0.88 : 0.62;
+    ctx.fillStyle = lerpC((th && th.wall && th.wall[0]) || "#121018", "#000000", 0.15);
+    const acc = hexA((th && th.accent) || "#ffd56a", 0.75 * (1 - k * 0.4));
+    ctx.shadowColor = "rgba(0,0,0,0.45)";
+    ctx.shadowBlur = 6;
+    const bar = (bx, by, bw, bh) => { ctx.fillRect(bx, by, bw, bh); };
+    const tri = (x0, y0, x1, y1, x2, y2) => {
+      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(x2, y2); ctx.fill();
+    };
+    if (kind === "tower" || kind === "tvtower") {
+      bar(x, ground - 90 * s, 10 * s, 90 * s);
+      tri(x - 8 * s, ground - 70 * s, x + 5 * s, ground - 100 * s, x + 18 * s, ground - 70 * s);
+      ctx.fillStyle = acc; bar(x + 3 * s, ground - 104 * s, 4 * s, 4 * s);
+    } else if (kind === "clock") {
+      bar(x, ground - 70 * s, 16 * s, 70 * s);
+      ctx.beginPath(); ctx.arc(x + 8 * s, ground - 78 * s, 14 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = acc;
+      ctx.beginPath(); ctx.arc(x + 8 * s, ground - 78 * s, 4 * s, 0, Math.PI * 2); ctx.fill();
+    } else if (kind === "bridge" || kind === "crane") {
+      bar(x - 40 * s, ground - 8 * s, 90 * s, 6 * s);
+      bar(x, ground - 50 * s, 5 * s, 50 * s);
+      tri(x + 5 * s, ground - 50 * s, x + 40 * s, ground - 10 * s, x + 5 * s, ground - 10 * s);
+    } else if (kind === "lighthouse") {
+      bar(x, ground - 80 * s, 12 * s, 80 * s);
+      tri(x - 6 * s, ground - 80 * s, x + 6 * s, ground - 100 * s, x + 18 * s, ground - 80 * s);
+      ctx.fillStyle = acc; bar(x + 4 * s, ground - 70 * s, 4 * s, 6 * s);
+    } else if (kind === "pagoda") {
+      for (let i = 0; i < 4; i++) {
+        const yy = ground - (22 * s) * (i + 1);
+        const hw = (18 - i * 3) * s;
+        tri(x - hw, yy + 14 * s, x + 6 * s, yy - 4 * s, x + 6 * s + hw, yy + 14 * s);
+        bar(x, yy, 12 * s, 16 * s);
+      }
+    } else if (kind === "dome") {
+      bar(x - 6 * s, ground - 30 * s, 28 * s, 30 * s);
+      ctx.beginPath(); ctx.arc(x + 8 * s, ground - 30 * s, 16 * s, Math.PI, 0); ctx.fill();
+    } else if (kind === "pavilion") {
+      bar(x - 4 * s, ground - 28 * s, 20 * s, 28 * s);
+      tri(x - 14 * s, ground - 26 * s, x + 6 * s, ground - 52 * s, x + 26 * s, ground - 26 * s);
+      ctx.fillStyle = acc; bar(x + 4 * s, ground - 18 * s, 4 * s, 8 * s);
+    } else if (kind === "temple") {
+      bar(x - 8 * s, ground - 28 * s, 36 * s, 28 * s);
+      tri(x - 16 * s, ground - 28 * s, x + 10 * s, ground - 52 * s, x + 36 * s, ground - 28 * s);
+    } else if (kind === "hall") {
+      bar(x - 10 * s, ground - 36 * s, 40 * s, 36 * s);
+      tri(x - 12 * s, ground - 36 * s, x + 10 * s, ground - 52 * s, x + 32 * s, ground - 36 * s);
+      bar(x - 2 * s, ground - 16 * s, 8 * s, 16 * s);
+    } else if (kind === "roof") {
+      bar(x, ground - 28 * s, 28 * s, 28 * s);
+      tri(x - 6 * s, ground - 28 * s, x + 14 * s, ground - 48 * s, x + 34 * s, ground - 28 * s);
+    } else if (kind === "lane") {
+      bar(x, ground - 32 * s, 14 * s, 32 * s);
+      bar(x + 16 * s, ground - 24 * s, 12 * s, 24 * s);
+      tri(x - 2 * s, ground - 32 * s, x + 7 * s, ground - 44 * s, x + 16 * s, ground - 32 * s);
+    } else if (kind === "bowl") {
+      ctx.beginPath();
+      ctx.moveTo(x - 28 * s, ground);
+      ctx.quadraticCurveTo(x + 4 * s, ground - 40 * s, x + 36 * s, ground);
+      ctx.fill();
+    } else if (kind === "cross") {
+      bar(x, ground - 40 * s, 18 * s, 40 * s);
+      ctx.fillStyle = acc;
+      bar(x + 6 * s, ground - 54 * s, 6 * s, 18 * s);
+      bar(x + 1 * s, ground - 49 * s, 16 * s, 6 * s);
+    } else if (kind === "awning") {
+      bar(x, ground - 22 * s, 36 * s, 22 * s);
+      for (let i = 0; i < 4; i++) {
+        ctx.fillStyle = i % 2 ? acc : lerpC((th && th.wall && th.wall[0]) || "#121018", "#050508", 0.1);
+        bar(x + i * 9 * s, ground - 28 * s, 9 * s, 8 * s);
+      }
+    } else if (kind === "stack") {
+      bar(x, ground - 70 * s, 8 * s, 70 * s);
+      bar(x + 14 * s, ground - 52 * s, 7 * s, 52 * s);
+      ctx.fillStyle = hexA("#8890aa", 0.35 * (1 - k));
+      bar(x + 1 * s, ground - 78 * s, 6 * s, 8 * s);
+    } else if (kind === "wing") {
+      bar(x + 10 * s, ground - 48 * s, 8 * s, 48 * s);
+      ctx.beginPath();
+      ctx.moveTo(x - 24 * s, ground - 20 * s);
+      ctx.lineTo(x + 14 * s, ground - 28 * s);
+      ctx.lineTo(x + 14 * s, ground - 18 * s);
+      ctx.closePath(); ctx.fill();
+    } else if (kind === "pier") {
+      bar(x - 30 * s, ground - 8 * s, 70 * s, 5 * s);
+      bar(x - 22 * s, ground - 8 * s, 4 * s, 8 * s);
+      bar(x + 8 * s, ground - 8 * s, 4 * s, 8 * s);
+      bar(x + 30 * s, ground - 8 * s, 4 * s, 8 * s);
+    } else if (kind === "gate") {
+      bar(x, ground - 28 * s, 6 * s, 28 * s);
+      bar(x + 22 * s, ground - 28 * s, 6 * s, 28 * s);
+      bar(x - 4 * s, ground - 36 * s, 36 * s, 8 * s);
+    } else if (kind === "peak") {
+      tri(x - 20 * s, ground, x + 8 * s, ground - 64 * s, x + 36 * s, ground);
+      ctx.globalAlpha *= 0.7;
+      tri(x + 6 * s, ground, x + 28 * s, ground - 40 * s, x + 48 * s, ground);
+    } else if (kind === "blocks") {
+      bar(x, ground - 36 * s, 14 * s, 36 * s);
+      bar(x + 16 * s, ground - 24 * s, 12 * s, 24 * s);
+      bar(x + 30 * s, ground - 30 * s, 10 * s, 30 * s);
+    } else if (kind === "canopy") {
+      bar(x - 8 * s, ground - 26 * s, 44 * s, 6 * s);
+      bar(x + 4 * s, ground - 20 * s, 5 * s, 20 * s);
+      bar(x + 24 * s, ground - 20 * s, 5 * s, 20 * s);
+    } else if (kind === "wheel") {
+      ctx.strokeStyle = ctx.fillStyle;
+      ctx.lineWidth = 2 * s;
+      ctx.beginPath(); ctx.arc(x + 10 * s, ground - 28 * s, 26 * s, 0, Math.PI * 2); ctx.stroke();
+      bar(x + 8 * s, ground - 28 * s, 4 * s, 28 * s);
+    } else if (kind === "lantern") {
+      for (let i = 0; i < 3; i++) {
+        ctx.fillStyle = acc;
+        ctx.beginPath(); ctx.ellipse(x + i * 14 * s, ground - 36 * s, 5 * s, 7 * s, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = lerpC((th && th.wall && th.wall[0]) || "#121018", "#050508", 0.2);
+        bar(x + i * 14 * s - 1, ground - 50 * s, 2, 14 * s);
+      }
+    } else {
+      bar(x, ground - 70 * s, 10 * s, 70 * s);
+      tri(x - 8 * s, ground - 54 * s, x + 5 * s, ground - 84 * s, x + 18 * s, ground - 54 * s);
+    }
+    ctx.restore();
+  }
+
+  function drawMechOverlay() {
+    if (!grid || !geo || !LV) return;
+    const { cs, ox, oy } = geo;
+    const groups = {};
+    const switches = [];
+    for (let y = 0; y < LV.H; y++) {
+      for (let x = 0; x < LV.W; x++) {
+        const c = grid[y][x];
+        if (!c) continue;
+        if (c.lock) {
+          const g = groups[c.lock] || (groups[c.lock] = { id: c.lock, cells: [], key: null, kind: c.kind, locked: !unlocked[c.lock] });
+          g.cells.push([x, y]);
+          if (c.kind === "shutter") g.kind = "shutter";
+          if (c.kind === "zone") g.kind = g.kind || "zone";
+        }
+        if (c.key) {
+          const g = groups[c.key] || (groups[c.key] = { id: c.key, cells: [], key: null, kind: c.kind, locked: !unlocked[c.key] });
+          g.key = [x, y];
+          g.keyKind = c.kind;
+        }
+        if (c.awaken && c.awaken.length) switches.push({ x, y, cells: c.awaken });
+      }
+    }
+    // lock / shutter / breaker links
+    Object.values(groups).forEach((g) => {
+      if (!g.cells.length) return;
+      const hue = mechHue(g.kind || g.keyKind);
+      const mark = (g.kind === "shutter" || g.keyKind === "button") ? "梯"
+        : (g.kind === "zone" || g.keyKind === "breaker") ? "闸"
+        : "钥";
+      // bounding box
+      let x0 = 99, y0 = 99, x1 = 0, y1 = 0;
+      g.cells.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); });
+      const cx = ox + ((x0 + x1 + 1) / 2) * cs;
+      const cy = oy + ((y0 + y1 + 1) / 2) * cs;
+      if (g.locked) {
+        ctx.save();
+        ctx.strokeStyle = hue;
+        ctx.globalAlpha = 0.7;
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([4, 3]);
+        ctx.strokeRect(ox + x0 * cs + 1, oy + y0 * cs + 1, (x1 - x0 + 1) * cs - 2, (y1 - y0 + 1) * cs - 2);
+        ctx.setLineDash([]);
+        // padlock
+        ctx.globalAlpha = 0.9;
+        ctx.fillStyle = hue;
+        ctx.font = `bold ${Math.max(9, cs * 0.55)}px sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        g._cx = cx; g._cy = cy; g._x0 = x0; g._y0 = y0; g._x1 = x1; g._y1 = y1;
+        ctx.fillText("锁", cx, cy - cs * 0.15);
+        ctx.restore();
+      }
+      if (g.key) {
+        const kx = ox + (g.key[0] + 0.5) * cs;
+        const ky = oy + (g.key[1] + 0.5) * cs;
+        ctx.save();
+        ctx.strokeStyle = hue;
+        ctx.globalAlpha = g.locked ? 0.8 : 0.3;
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath(); ctx.moveTo(kx, ky); ctx.lineTo(cx, cy); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = hue;
+        ctx.strokeStyle = "#140d08";
+        ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(kx, ky - cs * 0.45, Math.max(6, cs * 0.32), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#1a1020";
+        ctx.font = `bold ${Math.max(7, cs * 0.32)}px sans-serif`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText(mark, kx, ky - cs * 0.45);
+        ctx.restore();
+      }
+    });
+    // awaken: dark cells + line from switch
+    switches.forEach((s) => {
+      const still = s.cells.some(([x, y]) => grid[y][x] && grid[y][x].dormant);
+      const hue = "#c9a6ff";
+      let x0 = 99, y0 = 99, x1 = 0, y1 = 0;
+      s.cells.forEach(([x, y]) => { x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y); });
+      const cx = ox + ((x0 + x1 + 1) / 2) * cs;
+      const cy = oy + ((y0 + y1 + 1) / 2) * cs;
+      const kx = ox + (s.x + 0.5) * cs, ky = oy + (s.y + 0.5) * cs;
+      if (still) {
+        ctx.save();
+        ctx.strokeStyle = hue;
+        ctx.globalAlpha = 0.75;
+        ctx.lineWidth = 1.4;
+        ctx.setLineDash([4, 3]);
+        ctx.strokeRect(ox + x0 * cs + 1, oy + y0 * cs + 1, (x1 - x0 + 1) * cs - 2, (y1 - y0 + 1) * cs - 2);
+        ctx.beginPath(); ctx.moveTo(kx, ky); ctx.lineTo(cx, cy); ctx.stroke();
+        ctx.setLineDash([]);
+        let dy = 0;
+        Object.values(groups).forEach((g) => {
+          if (!g.locked || g._x0 == null) return;
+          const overlap = !(x1 < g._x0 || x0 > g._x1 || y1 < g._y0 || y0 > g._y1);
+          if (overlap) dy = cs * 0.7;
+        });
+        ctx.fillStyle = hue;
+        ctx.font = `bold ${Math.max(9, cs * 0.5)}px sans-serif`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText("待亮", cx, cy + dy);
+        if (dy) {
+          ctx.font = `bold ${Math.max(7, cs * 0.32)}px sans-serif`;
+          ctx.globalAlpha = 0.95;
+          ctx.fillStyle = "#f3efe4";
+          ctx.fillText("先开锁，再开灯", cx, cy - cs * 0.85);
+        }
+        ctx.beginPath(); ctx.arc(kx, ky - cs * 0.45, Math.max(6, cs * 0.32), 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#1a1020";
+        ctx.font = `bold ${Math.max(7, cs * 0.32)}px sans-serif`;
+        ctx.fillText("亮", kx, ky - cs * 0.45);
+        ctx.restore();
+      }
+    });
+    // blink pulse rings + badge
+    for (let y = 0; y < LV.H; y++) {
+      for (let x = 0; x < LV.W; x++) {
+        const c = grid[y][x];
+        if (!c || !c.on || !c.blink) continue;
+        const dim = takes % 2 === 1;
+        ctx.save();
+        ctx.globalAlpha = dim ? 0.95 : 0.7;
+        ctx.strokeStyle = "#ffd0e4";
+        ctx.lineWidth = dim ? 2 : 1.4;
+        ctx.strokeRect(ox + x * cs + 1.2, oy + y * cs + 1.2, cs - 2.4, cs - 2.4);
+        const leftEdge = x === 0 || !grid[y][x - 1] || !grid[y][x - 1].blink;
+        const topEdge = y === 0 || !grid[y - 1][x] || !grid[y - 1][x].blink;
+        if (leftEdge && topEdge) {
+          const bx = ox + x * cs + 1, by = oy + y * cs - Math.max(9, cs * 0.42);
+          const bw = Math.max(16, cs * 0.72), bh = Math.max(10, cs * 0.42);
+          ctx.globalAlpha = 1;
+          ctx.fillStyle = "#2a1020";
+          ctx.strokeStyle = "#ff8ab8";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 3);
+          else ctx.rect(bx, by, bw, bh);
+          ctx.fill(); ctx.stroke();
+          ctx.fillStyle = "#ffd0e4";
+          ctx.font = `bold ${Math.max(8, cs * 0.34)}px sans-serif`;
+          ctx.textAlign = "center"; ctx.textBaseline = "middle";
+          ctx.fillText("闪", bx + bw / 2, by + bh / 2 + 0.5);
+        }
+        ctx.restore();
+      }
+    }
+    // preview highlights
+    if (preview) {
+      ctx.save();
+      if (preview.waiting) {
+        ctx.fillStyle = "rgba(20,16,32,0.2)";
+        ctx.fillRect(ox, oy, LV.W * cs, LV.H * cs);
+      } else {
+        preview.cells.forEach(([x, y]) => {
+          ctx.strokeStyle = "#fff4c0";
+          ctx.lineWidth = 2;
+          ctx.globalAlpha = 0.9;
+          ctx.strokeRect(ox + x * cs + 1, oy + y * cs + 1, cs - 2, cs - 2);
+        });
+      }
+      ctx.restore();
+    }
+  }
+
   /* ---------- loop ---------- */
   function frame(t) {
     const dt = Math.min(0.05, (t - lastT) / 1000 || 0.016);
@@ -1503,9 +2069,10 @@
   $("#loseRetry").onclick = () => loadLevel(li);
   $("#winMenu").onclick = openMenu;
   $("#winRetry").onclick = () => loadLevel(li);
+  if ($("#winAlbum")) $("#winAlbum").onclick = () => { openAlbum(); };
   $("#winNext").onclick = () => {
-    const n = Math.min(C.LEVELS.length - 1, li + 1);
-    if (isOpenLevel(n)) openLevel(n);
+    const n = li + 1;
+    if (n < MAX_MENU && isOpenLevel(n)) openLevel(n);
     else openMenu();
   };
   $("#loseRw").onclick = rewind;
@@ -1532,6 +2099,13 @@
   window.addEventListener("resize", resize);
   window.addEventListener("orientationchange", () => setTimeout(resize, 80));
 
+  if ($("#pagePrev")) $("#pagePrev").onclick = () => { menuPage--; renderMenu(); };
+  if ($("#pageNext")) $("#pageNext").onclick = () => { menuPage++; renderMenu(); };
+  if ($("#albumBtn")) $("#albumBtn").onclick = openAlbum;
+  if ($("#albumBack")) $("#albumBack").onclick = openMenu;
+  if ($("#cardClose")) $("#cardClose").onclick = () => { $("#cardView").hidden = true; };
+  if ($("#introOk")) $("#introOk").onclick = dismissIntro;
+
   /* ---------- boot ---------- */
   seedStars();
   solutions = C.LEVELS.map((L) => C.solve(L, 5));
@@ -1553,7 +2127,18 @@
       name: LV && LV.name, unlocked: save.unlocked, stars: { ...save.stars }, all: save.all,
     }),
     solutions: solutions.map((s) => s.path),
-    skipCoach() { coach = null; const el = document.getElementById("coach"); if (el) el.hidden = true; },
+    solution(i) {
+      if (i < solutions.length && solutions[i]) return solutions[i].path;
+      const lv = levelAt(i);
+      const r = C.solve(lv, 5);
+      return r.path || [];
+    },
+    skipCoach() { coach = null; const el = document.getElementById("coach"); if (el) el.hidden = true; const ic = document.getElementById("introCard"); if (ic) ic.hidden = true; },
+    openAlbum,
+    setPage: (p) => { menuPage = p; renderMenu(); },
+    preview: (ci) => startPreview(ci),
+    endPreview,
+
     showLose,
     setSpeed: (n) => { speed = n; if (LV) updateHud(); },
     rewind,

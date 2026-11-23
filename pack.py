@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Pack core.js + game.js + style.css into a self-contained index.html."""
+"""Pack core.js + gen.js + game.js + style.css into a self-contained index.html."""
 from pathlib import Path
 root = Path(__file__).resolve().parent
 core = (root / "core.js").read_text()
+gen = (root / "gen.js").read_text()
 css = (root / "style.css").read_text()
 js = (root / "game.js").read_text()
 fav = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%2307061a' width='32' height='32' rx='6'/%3E%3Ccircle cx='20' cy='12' r='7' fill='%23ffd56a'/%3E%3Ccircle cx='16' cy='10' r='6' fill='%2307061a'/%3E%3Crect x='8' y='20' width='3' height='3' fill='%23ffd56a'/%3E%3Crect x='13' y='20' width='3' height='3' fill='%237ee7ff'/%3E%3Crect x='18' y='20' width='3' height='3' fill='%23ff8ab8'/%3E%3C/svg%3E"
@@ -27,7 +28,33 @@ html = f"""<!DOCTYPE html>
         <p>把通明的城市，一盏盏关掉</p>
         <p id="progress"></p>
       </div>
+      <div class="menu-bar">
+        <button class="btn ghost" id="albumBtn" type="button">夜景图鉴</button>
+        <div id="pager">
+          <button class="btn ghost" id="pagePrev" type="button">上一章</button>
+          <span id="pageLab">第 1 章</span>
+          <button class="btn ghost" id="pageNext" type="button">下一章</button>
+        </div>
+      </div>
       <div id="levels"></div>
+    </section>
+
+    <section id="album" hidden>
+      <div class="brand">
+        <button class="icon" id="albumBack" type="button">←</button>
+        <h1>夜景图鉴</h1>
+        <p id="albumProg">把关掉的城市，收成明信片</p>
+      </div>
+      <div id="postcards"></div>
+      <div id="cardView" class="modal" hidden>
+        <div class="panel postcard-view">
+          <canvas id="cardCanvas" width="320" height="200"></canvas>
+          <div id="cardStars"></div>
+          <h2 id="cardName"></h2>
+          <p id="cardQuote"></p>
+          <button class="btn primary" id="cardClose" type="button">收回册子</button>
+        </div>
+      </div>
     </section>
 
     <section id="game" hidden>
@@ -44,6 +71,14 @@ html = f"""<!DOCTYPE html>
         <div id="toast"></div>
         <div id="slots"></div>
         <div id="coach" hidden></div>
+        <div id="introCard" hidden>
+          <div class="intro-panel">
+            <div class="intro-anim" id="introAnim"></div>
+            <h3 id="introTitle"></h3>
+            <p id="introLine"></p>
+            <button class="btn primary" id="introOk" type="button">知道了</button>
+          </div>
+        </div>
         <div id="fx"></div>
       </div>
       <div id="tray"></div>
@@ -70,6 +105,7 @@ html = f"""<!DOCTYPE html>
           <div id="winStars">★★★</div>
           <p id="winSub">城市已入睡</p>
           <div class="row">
+            <button class="btn ghost" id="winAlbum" type="button">看图鉴</button>
             <button class="btn ghost" id="winMenu" type="button">菜单</button>
             <button class="btn" id="winRetry" type="button">再关一次</button>
             <button class="btn primary" id="winNext" type="button" style="min-width:0;flex:1">下一关</button>
@@ -90,6 +126,9 @@ html = f"""<!DOCTYPE html>
   </div>
   <script id="core">
 {core}
+  </script>
+  <script id="gen">
+{gen}
   </script>
   <script>
 {js}

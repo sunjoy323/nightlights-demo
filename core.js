@@ -252,14 +252,14 @@
     return lights + "#" + cs + "#" + ss + "#" + uk + "#" + ((takes || 0) % 2);
   }
 
-  function solve(level, slotCount) {
+  function solve(level, slotCount, opts) {
     const grid0 = cloneGrid(level.grid);
     const cols0 = cloneCols(level.cols);
     const slots0 = Array(slotCount).fill(null);
     const unlocked0 = { ...(level.unlocked || {}) };
     const seen = new Set();
     let found = null;
-    const maxVisits = 400000;
+    const maxVisits = (opts && opts.maxVisits) || 400000;
     let visits = 0;
 
     function dfs(grid, cols, slots, unlocked, takes, path) {
