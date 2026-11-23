@@ -4,3 +4,4 @@ docs/levels-1000-checkpoint.json
 shots/
 __pycache__/
 v5-gen.log
+v5-verify.log

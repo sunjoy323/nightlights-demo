@@ -1571,7 +1571,38 @@
         }
       }
     }
+    if (LV.landmark) drawLandmarkOutline(ox, oy, cs, th);
     ctx.textAlign = "left";
+  }
+
+  // Landmark silhouette outline: keeps the shape readable even when locks/shutters dim the windows.
+  function drawLandmarkOutline(ox, oy, cs, th) {
+    const H = LV.H, W = LV.W;
+    const has = (x, y) => x >= 0 && y >= 0 && x < W && y < H && !!grid[y][x];
+    // landmark = cells right of the first fully empty column after the gatehouse
+    let split = 0;
+    for (let x = 0; x < W; x++) {
+      let any = false;
+      for (let y = 0; y < H; y++) if (grid[y][x]) { any = true; break; }
+      if (!any && x > 0) { split = x; break; }
+    }
+    ctx.save();
+    ctx.strokeStyle = hexA((th && th.accent) || "#fff4c0", 0.75);
+    ctx.lineWidth = Math.max(1.2, cs * 0.12);
+    ctx.shadowColor = (th && th.accent) || "#fff4c0";
+    ctx.shadowBlur = Math.max(2, cs * 0.5);
+    ctx.beginPath();
+    for (let y = 0; y < H; y++) {
+      for (let x = split; x < W; x++) {
+        if (!grid[y][x]) continue;
+        const px = ox + x * cs, py = oy + y * cs;
+        if (!has(x, y - 1)) { ctx.moveTo(px, py); ctx.lineTo(px + cs, py); }
+        if (!has(x - 1, y)) { ctx.moveTo(px, py); ctx.lineTo(px, py + cs); }
+        if (!has(x + 1, y)) { ctx.moveTo(px + cs, py); ctx.lineTo(px + cs, py + cs); }
+      }
+    }
+    ctx.stroke();
+    ctx.restore();
   }
 
   function lightKey() {
