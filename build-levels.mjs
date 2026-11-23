@@ -183,9 +183,14 @@ if (!isMainThread) {
       levels: metas,
     };
     fs.writeFileSync(META_OUT, JSON.stringify(curve));
+    // Runtime only needs what attachWorld() cannot re-derive; keep the bank small.
     const slim = metas.map((m) => {
-      const { path, hint, quote, ...rest } = m;
-      return rest;
+      const o = { n: m.n, id: m.id, tier: m.tier, role: m.role, score: m.score };
+      if (m.mechanic) o.mechanic = m.mechanic;
+      if (m.mechs && m.mechs.length) o.mechs = m.mechs;
+      if (m.keyUnique) o.keyUnique = true;
+      if (m.rand != null) o.rand = m.rand;
+      return o;
     });
     const b64 = deflated.toString("base64");
     const js = `/* packed 1000-level bank, deflate-raw + base64. Generated, do not edit. */\nwindow.NIGHT_BANK_B64 = "${b64}";\nwindow.NIGHT_BANK_META = ${JSON.stringify(slim)};\n`;
@@ -219,6 +224,7 @@ if (!isMainThread) {
     process.exit(0);
   }
 
+  for (const sig of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sig, () => { saveCheckpoint(); console.log("saved on", sig); process.exit(130); });
   const queues = Array.from({ length: WORKERS }, () => []);
   todo.forEach((n, i) => queues[i % WORKERS].push(n));
   const workers = [];
@@ -247,7 +253,7 @@ if (!isMainThread) {
         console.log(
           `${m.greedyOk && m.n > 5 ? "WARN" : "OK "} ${String(m.n).padStart(4)} ${String(m.cityName).padEnd(8)} ${String(m.name).padEnd(10)} ${String(m.role).padEnd(12)} sc=${m.score} L=${m.lights} C=${m.nColors} g=${m.greedyOk ? "Y" : "N"} r=${(m.rand * 100).toFixed(1)}% sols=${m.sols} keyC=${m.keyCount} keyU=${m.keyUnique} ${msg.rec.ms}ms`
         );
-        if (doneInRun % 4 === 0) saveCheckpoint();
+        saveCheckpoint();
       } else {
         fail++;
         console.error("FAIL", msg.n, msg.error);

@@ -810,6 +810,8 @@
       if (hard && fit < bestFit) { bestFit = fit; best = lv; bestEv = ev; }
       else if (!best && ev.sol.ok) { best = lv; bestEv = ev; bestFit = fit; }
       if (hard && fit <= 8) break;
+      // Scores run above target late in the run; once a hard-passing level exists, stop searching after a budget.
+      if (best && bestFit < 40 && a >= (isBoss(pacing.role) ? 24 : 14)) break;
     }
     if (!best) throw new Error("generate failed " + n);
     if (n > TUTORIAL && bestEv && !passesHard(n, bestEv)) throw new Error("generate failed hard " + n);
