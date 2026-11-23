@@ -98,7 +98,9 @@
     }
     // After the tutorial, every level needs a lock-like gate so greedy cannot just follow useful fronts.
     if (n > TUTORIAL) {
-      const GATES = ["lock", "shutter", "breaker"];
+      // Shutter only covers a mid-band, so wait-colors on that building stay reachable.
+      // After the tutorial, always have a full-building gate (lock or breaker).
+      const GATES = ["lock", "breaker"];
       if (!chosen.some((m) => GATES.includes(m))) {
         const g = (unlocked.find((m) => GATES.includes(m))) || "lock";
         if (!chosen.includes(g)) chosen.unshift(g);
@@ -111,6 +113,22 @@
     return chosen;
   }
 
+  function colorCountOf(n, role) {
+    if (n <= TUTORIAL) return 2;
+    const chap = Math.floor((n - 1) / 20);
+    const pos = ((n - 1) % 20) + 1;
+    // palette unlocks slowly; sawtooth inside each chapter
+    const base = clamp(4 + Math.floor(chap / 8), 4, 7);
+    let bump = 0;
+    if (pos === 20) bump = 2;
+    else if (pos === 10) bump = 1;
+    else if (pos === 5 || pos === 15) bump = 1;
+    else if (pos <= 3) bump = -1;
+    else if (pos % 4 === 0) bump = 1;
+    if (role === "teachMech") bump = Math.min(bump, 0);
+    return clamp(base + bump, 4, C.COLORS.length);
+  }
+
   function pacingOf(n) {
     const role = roleOf(n);
     // mid-high band after tutorial; no relax dip
@@ -121,16 +139,23 @@
     else if (role === "pit") target = clamp(60 + Math.sqrt(n) * 1.0, 60, 80);
     else if (role === "boss") target = clamp(70 + Math.sqrt(n) * 0.9, 70, 86);
     else if (role === "chapterBoss") target = clamp(76 + Math.sqrt(n) * 0.9, 76, 90);
-    const colors = n <= 5 ? 2 : n <= 8 ? 3 : n <= 20 ? 4 : clamp(4 + Math.floor((n - 20) / 80), 4, 6);
+    const colors = colorCountOf(n, role);
     const bury = n <= TUTORIAL ? 0 : (isBoss(role) ? 2 : role === "pit" ? 2 : role === "teachMech" ? 1 : 1);
+    const chap = Math.floor((n - 1) / 20);
+    const grow = clamp(Math.floor(chap / 5), 0, 4);
+    let W = 20 + grow, H = 16 + grow, blds = 4;
+    if (role === "pit") { W += 1; H += 1; blds = 4; }
+    if (role === "boss") { W = 22 + grow; H = 18 + grow; blds = 2; }
+    if (role === "chapterBoss") { W = 23 + grow; H = 19 + grow; blds = 2; }
+    if (role === "teachMech") { W = 20 + Math.min(2, grow); H = 16 + Math.min(2, grow); }
+    if (n <= TUTORIAL) { W = 16; H = 12; }
     return {
       n, role, target,
       lo: target - (isBoss(role) ? 10 : 14),
       hi: target + 14,
       colors, bury,
-      blds: isBoss(role) ? 2 : (role === "pit" ? 4 : 3),
-      W: isBoss(role) ? 18 : 16,
-      H: isBoss(role) ? 14 : 12,
+      blds,
+      W, H,
     };
   }
 
@@ -201,8 +226,29 @@
 
   function recItem(item) { return typeof item === "number" ? { c: item } : item; }
 
-  function assign(level, recipe, hiddenSet) {
+  function splitCounts(total, k, rng) {
+    k = Math.max(1, Math.min(k, total));
+    if (k === 1) return [total];
+    const raw = [];
+    for (let i = 0; i < k; i++) raw.push(0.35 + rng());
+    if (k >= 3) raw[0] *= 1.6 + rng();
+    if (k >= 4 && rng() < 0.7) raw[1] *= 0.45 + rng() * 0.3;
+    const sum = raw.reduce((a, b) => a + b, 0);
+    const out = raw.map((w) => Math.max(1, Math.round(total * w / sum)));
+    let diff = total - out.reduce((a, b) => a + b, 0);
+    let i = 0;
+    while (diff !== 0 && i < 200) {
+      const j = i % k;
+      if (diff > 0) { out[j]++; diff--; }
+      else if (out[j] > 1) { out[j]--; diff++; }
+      i++;
+    }
+    return out;
+  }
+
+  function assign(level, recipe, hiddenSet, rng) {
     hiddenSet = hiddenSet || new Set();
+    rng = rng || mulberry32(hashStr("split:" + (level.id || level.n || 0)));
     const { n } = C.countNeed(level.grid);
     const parsed = recipe.map((col) => col.map(recItem));
     const need = {};
@@ -213,9 +259,8 @@
       piles[c] = [];
       if (k === 0 && total > 0) throw new Error("color leftover " + c);
       if (k === 0) continue;
-      const base = Math.floor(total / k);
-      let rem = total - base * k;
-      for (let i = 0; i < k; i++) { piles[c].push(base + (rem > 0 ? 1 : 0)); if (rem > 0) rem--; }
+      const parts = splitCounts(total, k, rng);
+      for (const v of parts) piles[c].push(v);
     }
     for (const c of Object.keys(need)) if (!n[+c]) throw new Error("no lights " + c);
     let tid = hashStr(level.id) % 100000;
@@ -250,6 +295,38 @@
     if (g[b.y] && g[b.y][b.x]) Object.assign(g[b.y][b.x], props);
   }
 
+
+
+  function bandPaint(g, x, y, w, h, colors, rng) {
+    if (!colors || colors.length < 2) return;
+    const step = Math.max(2, Math.floor(h / colors.length));
+    let ci = 0;
+    for (let yy = y; yy < y + h; yy++) {
+      if ((yy - y) && ((yy - y) % step) === 0) ci = (ci + 1) % colors.length;
+      for (let xx = x; xx < x + w; xx++) {
+        if (g[yy] && g[yy][xx] && !g[yy][xx].key && rng() < 0.45) g[yy][xx].c = colors[ci];
+      }
+    }
+  }
+
+  function nColorsUnlock(n) {
+    if (n <= 20) return 5;
+    if (n <= 80) return 6;
+    if (n <= 200) return 7;
+    return C.COLORS.length;
+  }
+
+  function sprinkle(g, x, y, w, h, colors, rng, rate) {
+    if (!colors || colors.length < 2) return;
+    for (let yy = y + 1; yy < y + h - 1; yy++) {
+      for (let xx = x + 1; xx < x + w - 1; xx++) {
+        if (g[yy] && g[yy][xx] && !g[yy][xx].key && rng() < rate) {
+          g[yy][xx].c = colors[(rng() * colors.length) | 0];
+        }
+      }
+    }
+  }
+
   function buildGrid(rng, pacing, mechs, city) {
 
     const landmark = !!(pacing.n % 10 === 0 && LM && city && LM.MASKS[city.landmark]);
@@ -265,40 +342,67 @@
     const g = C.emptyGrid(W, H);
     const needKey = mechs.some((m) => m === "lock" || m === "shutter" || m === "breaker" || m === "awaken");
     const needExtra = mechs.some((m) => m === "shutter" || m === "awaken");
-    const paintN = Math.min(pacing.colors, needExtra ? 4 : (needKey ? 5 : 6));
-    const colors = [];
-    for (let i = 0; i < paintN; i++) colors.push(i % 6);
-    const keyColor = needKey ? paintN : colors[colors.length - 1];
-    const extraColor = Math.min(5, keyColor + 1);
+    const palN = C.COLORS.length;
+    const reserved = (needKey ? 1 : 0) + (needExtra ? 1 : 0);
+    const want = pacing.colors;
+    const paintN = clamp(want - reserved, 3, palN - reserved);
+    const unlockedPal = nColorsUnlock(pacing.n);
+    const bag = [];
+    for (let i = 0; i < unlockedPal; i++) bag.push(i);
+    for (let i = bag.length - 1; i > 0; i--) {
+      const j = (rng() * (i + 1)) | 0;
+      const tmp = bag[i]; bag[i] = bag[j]; bag[j] = tmp;
+    }
+    const colors = bag.slice(0, paintN);
+    const rest = bag.filter((c) => colors.indexOf(c) < 0);
+    for (let i = 0; i < palN; i++) if (rest.indexOf(i) < 0 && colors.indexOf(i) < 0) rest.push(i);
+    const keyColor = needKey ? (rest[0] != null ? rest[0] : (paintN % palN)) : colors[colors.length - 1];
+    const extraColor = needExtra ? (rest[1] != null && rest[1] !== keyColor ? rest[1] : (rest[0] != null && rest[0] !== keyColor ? rest[0] : (keyColor + 1) % palN)) : keyColor;
+    // Split paint colors: useful (reachable buildings) vs wait (locked landmark / right building only).
+    // Sharing a palette across all buildings made locked colors immediately useful, so greedy could cruise.
+    const waitN = clamp(colors.length - 2, 1, Math.min(4, colors.length - 1));
+    const usefulPal = colors.slice(0, colors.length - waitN);
+    const waitPal = colors.slice(colors.length - waitN);
+    if (!usefulPal.length) usefulPal.push(colors[0]);
     const blds = [];
 
     // always a left gatehouse / workshop for keys & switches
-    const gw = landmark ? clamp(irand(rng, 3, 4), 3, Math.max(3, W - mw - 1)) : 0;
+    const gw = landmark ? clamp(irand(rng, 4, 5), 3, Math.max(3, W - mw - 1)) : 0;
     if (landmark) {
-      const gh = irand(rng, Math.max(5, H - 7), H - 1);
+      const gh = irand(rng, Math.max(8, H - 5), H);
       const gy = H - gh;
-      const border = colors[0], fill = colors[Math.min(1, colors.length - 1)];
+      const border = usefulPal[0], fill = usefulPal[usefulPal.length - 1];
       C.stampBuilding(g, 0, gy, gw, gh, { border, fill });
+      sprinkle(g, 0, gy, gw, gh, usefulPal, rng, 0.28);
       blds.push({ x: 0, y: gy, w: gw, h: gh, border, fill, gate: true });
       const lx = W - mw;
-      const ly = H - mh;
-      C.stampMask(g, lx, ly, mask, { colors: [colors[1 % colors.length], colors[2 % colors.length], colors[0]] });
-      blds.push({ x: lx, y: ly, w: mw, h: mh, border: colors[1 % colors.length], fill: colors[2 % colors.length], landmark: true });
+      const ly = Math.max(0, H - mh);
+      const mc = [
+        waitPal[0],
+        waitPal[1 % waitPal.length],
+        waitPal[2 % waitPal.length],
+      ];
+      C.stampMask(g, lx, ly, mask, { colors: mc });
+      bandPaint(g, lx, ly, mw, mh, waitPal, rng);
+      blds.push({ x: lx, y: ly, w: mw, h: mh, border: mc[0], fill: mc[1], landmark: true });
     } else {
-      const nB = clamp(pacing.blds, 3, 5);
+      const nB = clamp(pacing.blds, 4, 6);
       let x = 0;
       for (let i = 0; i < nB; i++) {
         const left = W - x;
         const slotsLeft = nB - i;
-        const maxW = Math.max(2, Math.floor((left - (slotsLeft - 1)) / slotsLeft) + 1);
-        const bw = clamp(irand(rng, 3, Math.min(7, maxW)), 2, left - (slotsLeft - 1));
-        const bh = irand(rng, Math.max(5, H - 6), H - 1);
+        const gapBudget = Math.max(0, slotsLeft - 1);
+        const maxW = Math.max(3, Math.floor((left - gapBudget) / slotsLeft) + 1);
+        const bw = clamp(irand(rng, 3, Math.min(8, maxW)), 3, Math.max(3, left - gapBudget));
+        const bh = irand(rng, Math.max(8, H - 4), H);
         const y = H - bh;
-        const border = colors[i % colors.length];
-        const fill = colors[(i + 1 + ((rng() * 2) | 0)) % colors.length];
+        const pal = (i === nB - 1) ? waitPal : usefulPal;
+        const border = pal[i % pal.length];
+        const fill = pal[(i + 1 + ((rng() * 2) | 0)) % pal.length];
         C.stampBuilding(g, x, y, bw, bh, { border, fill });
+        sprinkle(g, x, y, bw, bh, pal, rng, 0.22);
         blds.push({ x, y, w: bw, h: bh, border, fill });
-        x += bw + 1;
+        x += bw + (i === nB - 1 ? 0 : 1);
         if (x >= W - 1) break;
       }
     }
@@ -321,7 +425,8 @@
 
     if (used.includes("shutter")) {
       const id = "S" + pacing.n;
-      const b = landmark ? rightB : midB;
+      // Gate the wait-palette building (the last one). Only use mid when lock/breaker already owns the right building.
+      const b = landmark ? rightB : ((used.includes("lock") || used.includes("breaker")) ? midB : rightB);
       const y0 = b.y + Math.max(2, (b.h * 0.3) | 0);
       const y1 = Math.min(b.y + b.h - 2, y0 + Math.max(2, (b.h * 0.3) | 0));
       for (let yy = y0; yy < y1; yy++)
@@ -345,8 +450,10 @@
     if (used.includes("awaken")) {
       const b = landmark ? rightB : midB;
       const cells = [];
-      const ix0 = b.x, ix1 = b.x + b.w;
-      const iy0 = b.y + 1, iy1 = b.y + b.h;
+      const ix0 = b.x + (landmark ? Math.max(0, (b.w * 0.15) | 0) : 0);
+      const ix1 = b.x + b.w - (landmark ? Math.max(0, (b.w * 0.15) | 0) : 0);
+      const iy0 = b.y + Math.max(1, (b.h * 0.25) | 0);
+      const iy1 = Math.min(b.y + b.h - 1, iy0 + Math.max(3, (b.h * 0.4) | 0));
       for (let yy = iy0; yy < iy1; yy++)
         for (let xx = ix0; xx < ix1; xx++)
           if (g[yy] && g[yy][xx] && !g[yy][xx].lock) {
@@ -418,8 +525,9 @@
       let k = 2;
       if (total >= 14) k = 3;
       if (total >= 24) k = 4;
-      if (total >= 36) k = 5;
-      if (cls.locked.has(c) && !cls.useful.has(c) && total >= 8) k = Math.max(k, Math.min(isBoss(pacing.role) ? 12 : 8, total));
+      if (total >= 40) k = 5;
+      if (total >= 70) k = 6;
+      if (cls.locked.has(c) && !cls.useful.has(c) && total >= 8) k = Math.max(k, Math.min(isBoss(pacing.role) ? 7 : 6, Math.max(4, Math.floor(total / 10))));
       if (cls.keys.has(c)) k = Math.max(1, Math.min(2, total));
       if (duoColor === c) k = 2;
       if (k > total) k = Math.max(1, total);
@@ -439,8 +547,9 @@
     const usefulT = tickets.filter((t) => !cls.keys.has(t.c) && cls.useful.has(t.c));
     const waitT = tickets.filter((t) => !cls.keys.has(t.c) && !cls.useful.has(t.c));
     const cols = [[], [], [], []];
+    // 5 slots: at most 4 unusable waits can sit in front of the key.
     const keyDepth = keyT.length
-      ? (isBoss(pacing.role) ? 4 : pacing.role === "pit" ? 3 : (pacing.role === "teachMech" ? 3 : 3))
+      ? 4
       : 0;
     // All four fronts should be waiting colors so random is tempted to fill the slots.
     // The key sits at the bottom of column 3, behind keyDepth waiting tickets.
@@ -523,7 +632,7 @@
 
   function tryOnce(n, attempt, gridOverride) {
     const pacing = pacingOf(n);
-    const rng = mulberry32(hashStr("nl4:" + n + ":" + attempt));
+    const rng = mulberry32(hashStr("nl5:" + n + ":" + attempt));
     const mechs = gridOverride ? (gridOverride.mechs || pickMechs(n, pacing.role, rng)) : pickMechs(n, pacing.role, rng);
     const th = themeFor(n);
     const city = W.cityOf(n);
@@ -552,7 +661,7 @@
     };
     attachWorld(lv, n);
     const { recipe, hiddenSet } = buildRecipe(rng, lv, pacing, mechs);
-    assign(lv, recipe, hiddenSet);
+    assign(lv, recipe, hiddenSet, rng);
     if (!C.ticketSumsOk(lv).ok) return null;
     return lv;
   }
@@ -674,7 +783,7 @@
       return lv;
     }
     const pacing = pacingOf(n);
-    const maxTry = (opts && opts.maxTry) || (isBoss(pacing.role) ? 70 : 48);
+    const maxTry = (opts && opts.maxTry) || (isBoss(pacing.role) ? 90 : 64);
     let best = null, bestEv = null, bestFit = 1e9;
     const gridOverride = opts && opts.gridOverride;
     for (let a = 0; a < maxTry; a++) {
@@ -684,7 +793,7 @@
       const ev = evaluate(lv, {
         maxVisits: a < 20 ? 30000 : 80000,
         countVisits: a < 20 ? 40000 : 80000,
-        randTrials: isBoss(pacing.role) ? 160 : 120,
+        randTrials: 200,
         maxSol: isBoss(pacing.role) ? 8 : 16,
       });
       if (!ev.ok) continue;
@@ -703,6 +812,7 @@
       if (hard && fit <= 8) break;
     }
     if (!best) throw new Error("generate failed " + n);
+    if (n > TUTORIAL && bestEv && !passesHard(n, bestEv)) throw new Error("generate failed hard " + n);
     cache[n] = best;
     return best;
   }
@@ -718,7 +828,7 @@
   function introFor(n) { return INTROS.find((x) => x.at === n) || null; }
 
   const api = {
-    INTROS, MECH_META, TUTORIAL, MAX_MENU,
+    INTROS, MECH_META, TUTORIAL, MAX_MENU, colorCountOf,
     hashStr, mulberry32, pacingOf, roleOf, themeFor, chapterOf, chapterName,
     scoreDifficulty, generate, getLevel, introFor, unlockedMechs,
     evaluate, passesHard, isBoss, attachWorld, enrich, setBank, fromBank, installBankFromRaw, loadBankB64,

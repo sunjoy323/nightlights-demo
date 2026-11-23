@@ -388,3 +388,40 @@ button:focus, .box:focus { outline: none; }
   pointer-events: auto;
 }
 #storyCard[hidden] { display: none !important; }
+
+
+#stage, #board { touch-action: none; }
+
+/* color-blind helper marks on tickets (ink-colored, low contrast so numbers stay readable) */
+.box.pat-dots {
+  background-image: radial-gradient(circle, rgba(20,10,0,.32) 1.3px, transparent 1.5px);
+  background-size: 9px 9px; background-position: 2px 2px;
+}
+.box.pat-ring {
+  background-image: radial-gradient(circle, transparent 5px, rgba(20,10,0,.4) 6px, transparent 7px);
+  background-position: center; background-repeat: no-repeat; background-size: 22px 22px;
+}
+.box.pat-slash {
+  background-image: repeating-linear-gradient(-45deg, transparent 0 6px, rgba(20,10,0,.28) 6px 8px);
+}
+.box.pat-plus {
+  background-image:
+    linear-gradient(rgba(20,10,0,.35), rgba(20,10,0,.35)),
+    linear-gradient(rgba(20,10,0,.35), rgba(20,10,0,.35));
+  background-size: 2px 16px, 16px 2px;
+  background-repeat: no-repeat;
+  background-position: center, center;
+}
+.box.pat-diamond {
+  background-image: linear-gradient(45deg, transparent 40%, rgba(20,10,0,.4) 41%, rgba(20,10,0,.4) 59%, transparent 60%),
+    linear-gradient(-45deg, transparent 40%, rgba(20,10,0,.4) 41%, rgba(20,10,0,.4) 59%, transparent 60%);
+  background-size: 14px 14px; background-repeat: no-repeat; background-position: center;
+}
+.box.pat-triangle {
+  background-image: linear-gradient(to top, rgba(20,10,0,.0) 35%, rgba(20,10,0,.0) 35%),
+    linear-gradient(135deg, transparent 46%, rgba(20,10,0,.4) 47%, transparent 48%),
+    linear-gradient(-135deg, transparent 46%, rgba(20,10,0,.4) 47%, transparent 48%);
+}
+.box.pat-bars {
+  background-image: linear-gradient(90deg, transparent 22%, rgba(20,10,0,.35) 22% 32%, transparent 32% 68%, rgba(20,10,0,.35) 68% 78%, transparent 78%);
+}

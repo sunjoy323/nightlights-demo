@@ -1,13 +1,57 @@
 // Shared puzzle core for 夜灯将眠 — used by verify.mjs and inlined into index.html
 (function (root) {
   const COLORS = [
-    { id: "amber", fill: "#ffd56a", glow: "#ffbe3a", ink: "#3a2208", name: "暖黄" },
-    { id: "pink", fill: "#ff8ab8", glow: "#ff5e9a", ink: "#4a1028", name: "粉" },
-    { id: "cyan", fill: "#7ee7ff", glow: "#3ad4ff", ink: "#073044", name: "青" },
-    { id: "orange", fill: "#ff9a4a", glow: "#ff7a1a", ink: "#3a1a00", name: "橙" },
-    { id: "mint", fill: "#8dffc1", glow: "#3dff9a", ink: "#06301c", name: "薄荷" },
-    { id: "lavender", fill: "#c9a6ff", glow: "#a87cff", ink: "#2a1050", name: "紫" },
+    { id: "amber", fill: "#ffd56a", glow: "#ffbe3a", ink: "#3a2208", name: "暖黄", pat: "solid" },
+    { id: "pink", fill: "#ff8ab8", glow: "#ff5e9a", ink: "#4a1028", name: "粉", pat: "dots" },
+    { id: "cyan", fill: "#7ee7ff", glow: "#3ad4ff", ink: "#073044", name: "青", pat: "ring" },
+    { id: "orange", fill: "#ff9a4a", glow: "#ff7a1a", ink: "#3a1a00", name: "橙", pat: "slash" },
+    { id: "mint", fill: "#8dffc1", glow: "#3dff9a", ink: "#06301c", name: "薄荷", pat: "plus" },
+    { id: "lavender", fill: "#c9a6ff", glow: "#a87cff", ink: "#2a1050", name: "紫", pat: "diamond" },
+    { id: "crimson", fill: "#ff5d6c", glow: "#ff3348", ink: "#3a0a12", name: "玫", pat: "triangle" },
+    { id: "azure", fill: "#5b8cff", glow: "#3a6aff", ink: "#0a1638", name: "蓝", pat: "bars" },
   ];
+
+  // Small, high-contrast marks so colors stay distinguishable for color-blind players.
+  function drawColorPattern(ctx, x, y, w, h, pat, ink, alpha) {
+    if (!pat || pat === "solid" || w < 4 || h < 4) return;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    ctx.globalAlpha = (alpha == null ? 0.5 : alpha);
+    ctx.strokeStyle = ink;
+    ctx.fillStyle = ink;
+    ctx.lineWidth = Math.max(1, Math.min(w, h) * 0.12);
+    const cx = x + w / 2, cy = y + h / 2, r = Math.min(w, h);
+    if (pat === "dots") {
+      const spots = r < 8 ? [[0.5, 0.5]] : [[0.3, 0.3], [0.7, 0.3], [0.5, 0.72]];
+      for (const [u, v] of spots) {
+        ctx.beginPath(); ctx.arc(x + w * u, y + h * v, Math.max(0.8, r * 0.1), 0, Math.PI * 2); ctx.fill();
+      }
+    } else if (pat === "ring") {
+      ctx.beginPath(); ctx.arc(cx, cy, r * 0.22, 0, Math.PI * 2); ctx.stroke();
+    } else if (pat === "slash") {
+      ctx.beginPath(); ctx.moveTo(x + 1, y + h - 1); ctx.lineTo(x + w - 1, y + 1); ctx.stroke();
+      if (r >= 8) { ctx.beginPath(); ctx.moveTo(x + w * 0.2, y + h); ctx.lineTo(x + w, y + h * 0.2); ctx.stroke(); }
+    } else if (pat === "plus") {
+      ctx.beginPath();
+      ctx.moveTo(cx, y + h * 0.2); ctx.lineTo(cx, y + h * 0.8);
+      ctx.moveTo(x + w * 0.2, cy); ctx.lineTo(x + w * 0.8, cy);
+      ctx.stroke();
+    } else if (pat === "diamond") {
+      ctx.beginPath();
+      ctx.moveTo(cx, y + h * 0.2); ctx.lineTo(x + w * 0.8, cy);
+      ctx.lineTo(cx, y + h * 0.8); ctx.lineTo(x + w * 0.2, cy);
+      ctx.closePath(); ctx.stroke();
+    } else if (pat === "triangle") {
+      ctx.beginPath();
+      ctx.moveTo(cx, y + h * 0.2); ctx.lineTo(x + w * 0.8, y + h * 0.8); ctx.lineTo(x + w * 0.2, y + h * 0.8);
+      ctx.closePath(); ctx.stroke();
+    } else if (pat === "bars") {
+      const bw = Math.max(1, w * 0.16);
+      ctx.fillRect(x + w * 0.22, y + h * 0.2, bw, h * 0.6);
+      ctx.fillRect(x + w * 0.62, y + h * 0.2, bw, h * 0.6);
+    }
+    ctx.restore();
+  }
 
   const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 
@@ -1395,7 +1439,7 @@
   }
 
   const api = {
-    COLORS, LEVELS, emptyGrid, cloneGrid, cloneCols, cloneSlots,
+    COLORS, drawColorPattern, LEVELS, emptyGrid, cloneGrid, cloneCols, cloneSlots,
     stampBuilding, stampMask, countOn, countNeed, isOpen, isReachable, findTarget, turnOff,
     saturate, leftCount, canTake, canPlaceTicket, place, frontsUseful, isWon, isLost,
     solve, greedySolve, leftmostSolve, ticketSumsOk, T,

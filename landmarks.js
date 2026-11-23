@@ -31,22 +31,31 @@
       "    2222    ",
     ],
     canton: [
-      "   111   ",
-      "   111   ",
-      "  11111  ",
-      "   111   ",
-      "    1    ",
-      "    2    ",
-      "   222   ",
-      "  22222  ",
-      " 2222222 ",
-      "  22222  ",
-      "   222   ",
-      "    2    ",
-      "    3    ",
-      "   333   ",
-      "  33333  ",
-      " 3333333 ",
+      "      1      ",
+      "      1      ",
+      "     111     ",
+      "    11111    ",
+      "   1111111   ",
+      "    11111    ",
+      "     111     ",
+      "      2      ",
+      "      2      ",
+      "      2      ",
+      "     222     ",
+      "     222     ",
+      "    22222    ",
+      "    22222    ",
+      "   2222222   ",
+      "  222222222  ",
+      " 22222222222 ",
+      "  222222222  ",
+      "   2222222   ",
+      "    33333    ",
+      "   3333333   ",
+      "  333333333  ",
+      "  333333333  ",
+      " 33333333333 ",
+      " 33333333333 ",
     ],
     spring: [
       "    1    ",
@@ -142,14 +151,19 @@
       "   111111111 ",
     ],
     opera: [
-      "      11     1  ",
-      "    11111   11  ",
-      "   111 111 111  ",
-      "  11    11111 11",
-      " 11     11111111",
-      " 11    111111111",
-      "111   1111111111",
-      "1111111111111111",
+      "              11          ",
+      "            111111      1 ",
+      "          1111  111   1111",
+      "        1111     111 11111",
+      "      11111    1  11111 11",
+      "     1111    11111 111    ",
+      "    111    11111111111    ",
+      "   111   1111  111111     ",
+      "  111  11111     111      ",
+      " 111  1111111     11      ",
+      "111  11111111             ",
+      "11111111111111111111111111",
+      "11111111111111111111111111",
     ],
     burj: [
       "    1    ",
@@ -199,16 +213,26 @@
       " 11111111111 ",
     ],
     eiffel: [
-      "    1    ",
-      "    1    ",
-      "   111   ",
-      "   1 1   ",
-      "  11 11  ",
-      "  1   1  ",
-      " 11   11 ",
-      " 1     1 ",
-      "11     11",
-      "1       1",
+      "      111      ",
+      "      111      ",
+      "     11 11     ",
+      "     11 11     ",
+      "    11 1 11    ",
+      "    1111111    ",
+      "   11     11   ",
+      "   11     11   ",
+      "  11  111  11  ",
+      "  11  111  11  ",
+      " 11    1    11 ",
+      " 11    1    11 ",
+      "11    111    11",
+      "11    111    11",
+      "1    11 11    1",
+      "1    11 11    1",
+      "11  11   11  11",
+      "11 11     11 11",
+      "1111       1111",
+      "11           11",
     ],
     bigben: [
       "  111  ",
@@ -312,7 +336,393 @@
       "    11111    ",
       "    11111    ",
     ],
+
+    leifeng: [
+      "      1      ",
+      "     111     ",
+      "    11111    ",
+      "     111     ",
+      "    11111    ",
+      "   1111111   ",
+      "    11111    ",
+      "   1111111   ",
+      "  111111111  ",
+      "    22222    ",
+      "   2222222   ",
+      "  222222222  ",
+      " 22222222222 ",
+      "     333     ",
+    ],
+    wildgoose: [
+      "    11111    ",
+      "    11111    ",
+      "    1 1 1    ",
+      "    11111    ",
+      "    1 1 1    ",
+      "    11111    ",
+      "    1 1 1    ",
+      "    11111    ",
+      "    1 1 1    ",
+      "    11111    ",
+      "    1 1 1    ",
+      "    11111    ",
+      "    1 1 1    ",
+      "   1111111   ",
+      "  222222222  ",
+      "  222222222  ",
+    ],
+    hongya: [
+      "      11  11  11     ",
+      "     111111111111    ",
+      "    11 11 11 11 11   ",
+      "    11111111111111   ",
+      "   11 11 11 11 11 11 ",
+      "   11111111111111111 ",
+      "  11 11 11 11 11 11  ",
+      "  111111111111111111 ",
+      " 11 11 11 11 11 11 11",
+      " 11111111111111111111",
+      "222222222222222222222",
+      "  333   333   333    ",
+    ],
+    zhonghuamen: [
+      "  1     1     1  ",
+      " 111   111   111 ",
+      "11111111111111111",
+      "1  11   11   11 1",
+      "1 1  1 1  1 1  11",
+      "1 111  111  111 1",
+      "1 1 1  1 1  1 1 1",
+      "11111111111111111",
+      "22222222222222222",
+      "22 2 2 2 2 2 2 22",
+      "22222222222222222",
+    ],
+    yellowcrane: [
+      "      1      ",
+      "     111     ",
+      "   1111111   ",
+      "  11 111 11  ",
+      "    11111    ",
+      "  111111111  ",
+      " 11  111  11 ",
+      "    11111    ",
+      " 11111111111 ",
+      "11   111   11",
+      "    22222    ",
+      "   2222222   ",
+      "  222222222  ",
+      "     333     ",
+    ],
+    huqiu: [
+      "      1      ",
+      "     111     ",
+      "    11111    ",
+      "     1 1     ",
+      "    11111    ",
+      "   11 1 11   ",
+      "    11111    ",
+      "   1111111   ",
+      "  11 111 11  ",
+      "   1111111   ",
+      "    22222    ",
+      "     2 2     ",
+      "    22222    ",
+      "   2222222   ",
+    ],
+    ruins: [
+      "1 1  11 11  1 1 1",
+      "111  11 11  11111",
+      "1 1 1  1  1 1 1 1",
+      "111 1111111 11111",
+      "1 1 1 1 1 1 1   1",
+      "111 1111111 11111",
+      "    11   11      ",
+      "    11 1 11      ",
+      "    1111111      ",
+      "    2222222      ",
+      "    2222222      ",
+    ],
+    osakacastle: [
+      "       1       ",
+      "      111      ",
+      "    1111111    ",
+      "   11 111 11   ",
+      "     11111     ",
+      "   111111111   ",
+      "  11  111  11  ",
+      "     22222     ",
+      "   222222222   ",
+      "  22  222  22  ",
+      "  22222222222  ",
+      " 3333333333333 ",
+      "333333333333333",
+    ],
+    arun: [
+      "      1      ",
+      "     111     ",
+      "    11111    ",
+      "    1 1 1    ",
+      "   1111111   ",
+      "  1 11111 1  ",
+      " 11111111111 ",
+      "1  1111111  1",
+      "1   11111   1",
+      "1    222    1",
+      "     222     ",
+      "    22222    ",
+      "   2222222   ",
+      "  333   333  ",
+    ],
+    petronas: [
+      "  1        1  ",
+      " 111      111 ",
+      " 111      111 ",
+      " 111      111 ",
+      " 111 1111 111 ",
+      " 111      111 ",
+      " 111      111 ",
+      " 111      111 ",
+      "11111    11111",
+      "11111    11111",
+      "11111    11111",
+      "22222    22222",
+      "22222    22222",
+      "33333    33333",
+    ],
+    gateway: [
+      "11111111111111111",
+      "1  11       11  1",
+      "1 11111   11111 1",
+      "1 11  1   1  11 1",
+      "1 11  1   1  11 1",
+      "1 11111   11111 1",
+      "1  11       11  1",
+      "1  11       11  1",
+      "11111111111111111",
+      "222             2",
+      "22222222222222222",
+    ],
+    campanile: [
+      "   111   ",
+      "  11111  ",
+      "  1 1 1  ",
+      "  11111  ",
+      "   111   ",
+      "   111   ",
+      "   1 1   ",
+      "   111   ",
+      "   1 1   ",
+      "   111   ",
+      "   1 1   ",
+      "   111   ",
+      "   1 1   ",
+      "  11111  ",
+      " 2222222 ",
+      "222222222",
+    ],
+    parthenon: [
+      "1 1 1 1 1 1 1 1 1",
+      "11111111111111111",
+      "1 1 1 1 1 1 1 1 1",
+      "1 1 1 1 1 1 1 1 1",
+      "1 1 1 1 1 1 1 1 1",
+      "1 1 1 1 1 1 1 1 1",
+      "11111111111111111",
+      "22222222222222222",
+      "2 2 2 2 2 2 2 2 2",
+      "22222222222222222",
+    ],
+    charles: [
+      "  111                 11",
+      " 11111               111",
+      " 1 1 1              1111",
+      " 11111            111111",
+      "  111     1  1   11 1 11",
+      "  111  111111111111 1 11",
+      "  111 11  11  11  111111",
+      "  11111   11  11   11111",
+      "222222222222222222222222",
+    ],
+    riesenrad: [
+      "      11111      ",
+      "   111     111   ",
+      "  11  11111  11  ",
+      " 11  11   11  11 ",
+      " 1  11     11  1 ",
+      "11  11     11  11",
+      "11  11     11  11",
+      " 1  11     11  1 ",
+      " 11  11   11  11 ",
+      "  11  11111  11  ",
+      "   111     111   ",
+      "      11111      ",
+      "        2        ",
+      "       222       ",
+      "      22222      ",
+    ],
+    belem: [
+      "      1 1      ",
+      "     11111     ",
+      "     1 1 1     ",
+      "    1111111    ",
+      "  1 1111111 1  ",
+      " 111 11111 111 ",
+      " 1 1 1 1 1 1 1 ",
+      " 111 11111 111 ",
+      " 1 1 11111 1 1 ",
+      "111111111111111",
+      "222222222222222",
+      "22 2 2 2 2 2 22",
+      "222222222222222",
+    ],
+    spaceneedle: [
+      "      1      ",
+      "      1      ",
+      "     111     ",
+      "   1111111   ",
+      "  111111111  ",
+      "   1111111   ",
+      "     111     ",
+      "      2      ",
+      "      2      ",
+      "      2      ",
+      "      2      ",
+      "     222     ",
+      "    2 2 2    ",
+      "   2  2  2   ",
+      "  2   2   2  ",
+      " 22   3   22 ",
+    ],
+    hollywood: [
+      "1 1 111 1   1   1 1 1 111 11  111",
+      "1 1 1 1 1   1   1 1 1 1 1 1 1 1 1",
+      "111 1 1 1   1    1  1 1 1 1 1 1 1",
+      "1 1 1 1 1   1    1  1 1 1 1 1 1 1",
+      "1 1 111 111 111  1  111 111 11  111",
+      "              2222222              ",
+      "            22222222222            ",
+      "          222222222222222          ",
+    ],
+    cntower: [
+      "      1      ",
+      "      1      ",
+      "     111     ",
+      "    11111    ",
+      "   1111111   ",
+      "    11111    ",
+      "     111     ",
+      "      2      ",
+      "      2      ",
+      "      2      ",
+      "      2      ",
+      "      2      ",
+      "      2      ",
+      "     222     ",
+      "    2 2 2    ",
+      "   2  3  2   ",
+    ],
+    sunpyramid: [
+      "        1        ",
+      "       111       ",
+      "      11111      ",
+      "      1 1 1      ",
+      "     1111111     ",
+      "     1 1 1 1     ",
+      "    111111111    ",
+      "    1 1 1 1 1    ",
+      "   11111111111   ",
+      "   1 1 1 1 1 1   ",
+      "  1111111111111  ",
+      " 222222222222222 ",
+      "22222222222222222",
+    ],
+    obelisco: [
+      "    1    ",
+      "   111   ",
+      "   111   ",
+      "   1 1   ",
+      "   111   ",
+      "   1 1   ",
+      "   111   ",
+      "   1 1   ",
+      "   111   ",
+      "   1 1   ",
+      "   111   ",
+      "  11111  ",
+      " 2222222 ",
+      "222222222",
+    ],
+    tablemountain: [
+      "  11111111111111111  ",
+      "  11 11 11 11 11 11  ",
+      "  11111111111111111  ",
+      "   111111111111111   ",
+      "   11 11 11 11 11    ",
+      "    1111111111111    ",
+      "    111  11  111     ",
+      "     2222222222      ",
+      "    222222222222     ",
+      "   2222      2222    ",
+      "  333          333   ",
+    ],
+    potala: [
+      "     11 11  11 11 11     ",
+      "    11111111111111111    ",
+      "    11 11 11 11 11 11    ",
+      "   1111111111111111111   ",
+      "   2222222222222222222   ",
+      "  22 22 22 22 22 22 22   ",
+      "  222222222222222222222  ",
+      "  22 22 22 22 22 22 22   ",
+      " 33333333333333333333333 ",
+      " 33 33 33 33 33 33 33 33 ",
+      "3333333333333333333333333",
+      "3333333333333333333333333",
+    ],
+    welcomesign: [
+      "   11111111111111111   ",
+      "  11               11  ",
+      "  11 1 1 111 1   1 11  ",
+      "  11 1 1 1   1   1 11  ",
+      "  11 1 1 111 1   1 11  ",
+      "  11 1 1 1   1   1 11  ",
+      "  11 111 111 111 1 11  ",
+      "  11               11  ",
+      "   11111111111111111   ",
+      "          222          ",
+      "          222          ",
+      "         22222         ",
+    ],
+    duomo: [
+      "        1         1  ",
+      "      11111      111 ",
+      "    111111111    1 1 ",
+      "   11111111111   111 ",
+      "    11 111 11    1 1 ",
+      "     1111111     111 ",
+      "  1111111111111  1 1 ",
+      " 11 11 11 11 11  111 ",
+      " 111111111111111 1 1 ",
+      " 11 11 11 11 11 11111",
+      "222222222222222222222",
+    ],
   };
+
+
+  function scaleMask(mask, sx, sy) {
+    const out = [];
+    for (const row of mask) {
+      let r = "";
+      for (const ch of row) r += ch.repeat(sx);
+      for (let i = 0; i < sy; i++) out.push(r);
+    }
+    return out;
+  }
+  // Enlarge older compact masks so window-count and silhouette both get a bump.
+  // canton / opera were hand-redrawn at a larger size and must not be doubled.
+  const SCALE2 = ["pearl","cctv","spring","bochk","taipei101","tokyo","pagoda","nseoul","sands","burj","pyramid","mosque","colosseum","bigben","canal","tvball","sagrada","stbasil","liberty","goldengate","willis","cristo"];
+  for (const k of SCALE2) if (MASKS[k]) MASKS[k] = scaleMask(MASKS[k], 2, 2);
 
   function maskSize(mask) {
     return { h: mask.length, w: Math.max(...mask.map((r) => r.length)) };
@@ -379,16 +789,22 @@
       ctx.fillRect(cx - w / 2 + tw * 0.15, ground - h * 0.28, w * 0.72, h * 0.2); // lower link
       glow(0.35); fillRound(ctx, cx + w * 0.08, ground - h * 0.22, w * 0.18, h * 0.1); endg();
     } else if (type === "canton") {
+      // 小蛮腰：头顶椭圆舱、细腰、下半段明显鼓出，再收到底座
       ctx.beginPath();
-      ctx.moveTo(cx - s * 0.07, ground - s * 1.02);
-      ctx.quadraticCurveTo(cx - s * 0.3, ground - s * 0.52, cx - s * 0.14, ground);
-      ctx.lineTo(cx + s * 0.14, ground);
-      ctx.quadraticCurveTo(cx + s * 0.3, ground - s * 0.52, cx + s * 0.07, ground - s * 1.02);
+      ctx.moveTo(cx - s * 0.05, ground - s * 1.02);
+      ctx.quadraticCurveTo(cx - s * 0.08, ground - s * 0.82, cx - s * 0.045, ground - s * 0.62); // tight waist
+      ctx.quadraticCurveTo(cx - s * 0.28, ground - s * 0.32, cx - s * 0.16, ground);            // wide hip
+      ctx.lineTo(cx + s * 0.16, ground);
+      ctx.quadraticCurveTo(cx + s * 0.28, ground - s * 0.32, cx + s * 0.045, ground - s * 0.62);
+      ctx.quadraticCurveTo(cx + s * 0.08, ground - s * 0.82, cx + s * 0.05, ground - s * 1.02);
       ctx.closePath(); ctx.fill();
-      // open lattice crown
-      ctx.fillRect(cx - s * 0.09, ground - s * 1.08, s * 0.18, s * 0.08);
-      ctx.fillRect(cx - 1.5, ground - s * 1.22, 3, s * 0.16);
-      glow(0.45); ctx.beginPath(); ctx.arc(cx, ground - s * 0.52, s * 0.07, 0, Math.PI * 2); ctx.fill(); endg();
+      // top capsule
+      ctx.beginPath(); ctx.ellipse(cx, ground - s * 1.08, s * 0.11, s * 0.09, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(cx - 1.5, ground - s * 1.28, 3, s * 0.14);
+      glow(0.5);
+      ctx.beginPath(); ctx.ellipse(cx, ground - s * 1.08, s * 0.045, s * 0.035, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx, ground - s * 0.36, s * 0.07, s * 0.04, 0, 0, Math.PI * 2); ctx.fill();
+      endg();
     } else if (type === "spring") {
       // 平安大厦：细高、缓收、三角冠、长针
       ctx.beginPath();
@@ -860,6 +1276,293 @@
       // head
       ctx.beginPath(); ctx.arc(cx, ground - pedH - s * 0.62, s * 0.075, 0, Math.PI * 2); ctx.fill();
       glow(0.4); ctx.beginPath(); ctx.arc(cx, ground - pedH - s * 0.62, s * 0.03, 0, Math.PI * 2); ctx.fill(); endg();
+
+    } else if (type === "leifeng") {
+      for (let i = 0; i < 5; i++) {
+        const y = ground - s * 0.16 * (i + 1);
+        const w = s * (0.62 - i * 0.07);
+        tri(ctx, cx - w / 2, y + s * 0.07, cx, y - s * 0.03, cx + w / 2, y + s * 0.07);
+        ctx.fillRect(cx - s * 0.09, y, s * 0.18, s * 0.11);
+      }
+      ctx.fillRect(cx - s * 0.18, ground - s * 0.08, s * 0.36, s * 0.08);
+      glow(0.4); ctx.fillRect(cx - 1.5, ground - s * 0.96, 3, 5); endg();
+    } else if (type === "wildgoose") {
+      const w = s * 0.42, h = s * 1.05;
+      ctx.fillRect(cx - w / 2, ground - h, w, h);
+      for (let i = 0; i < 7; i++) {
+        const y = ground - h + (i + 0.25) * (h / 7);
+        ctx.fillStyle = acc; ctx.globalAlpha = 0.18 * lit;
+        ctx.fillRect(cx - w * 0.38, y, w * 0.76, h / 14);
+        ctx.globalAlpha = 1; ctx.fillStyle = wall;
+      }
+      ctx.fillRect(cx - w * 0.62, ground - s * 0.1, w * 1.24, s * 0.1);
+    } else if (type === "hongya") {
+      const layers = 6;
+      for (let i = 0; i < layers; i++) {
+        const y = ground - s * 0.12 * (i + 1);
+        const w = s * (1.15 - i * 0.08);
+        ctx.fillRect(cx - w / 2, y, w, s * 0.1);
+        ctx.fillRect(cx - w / 2 - s * 0.03, y - s * 0.03, w + s * 0.06, s * 0.03);
+      }
+      glow(0.35);
+      for (let i = 0; i < 5; i++) ctx.fillRect(cx - s * 0.4 + i * s * 0.18, ground - s * 0.55, s * 0.06, s * 0.04);
+      endg();
+    } else if (type === "zhonghuamen") {
+      const w = s * 1.15, h = s * 0.7;
+      ctx.fillRect(cx - w / 2, ground - h, w, h);
+      for (let i = -1; i <= 1; i++) {
+        ctx.fillStyle = "#0a0c14";
+        ctx.beginPath();
+        ctx.moveTo(cx + i * w * 0.28 - s * 0.08, ground);
+        ctx.quadraticCurveTo(cx + i * w * 0.28, ground - h * 0.55, cx + i * w * 0.28 + s * 0.08, ground);
+        ctx.fill();
+      }
+      ctx.fillStyle = wall;
+      ctx.fillRect(cx - w / 2, ground - h - s * 0.08, w, s * 0.08);
+      for (let i = -1; i <= 1; i++) ctx.fillRect(cx + i * w * 0.28 - s * 0.04, ground - h - s * 0.22, s * 0.08, s * 0.16);
+    } else if (type === "yellowcrane") {
+      for (let i = 0; i < 5; i++) {
+        const y = ground - s * 0.15 * (i + 1);
+        const w = s * (0.85 - i * 0.08);
+        tri(ctx, cx - w / 2, y + s * 0.08, cx, y - s * 0.02, cx + w / 2, y + s * 0.08);
+        ctx.fillRect(cx - s * 0.1, y, s * 0.2, s * 0.1);
+      }
+      // upturned corners
+      ctx.fillRect(cx - s * 0.48, ground - s * 0.22, s * 0.1, s * 0.03);
+      ctx.fillRect(cx + s * 0.38, ground - s * 0.22, s * 0.1, s * 0.03);
+      glow(0.4); ctx.fillRect(cx - 1.5, ground - s * 0.92, 3, 5); endg();
+    } else if (type === "huqiu") {
+      for (let i = 0; i < 7; i++) {
+        const y = ground - s * 0.12 * (i + 1);
+        const w = s * (0.55 - i * 0.04);
+        const tilt = i * s * 0.012;
+        tri(ctx, cx - w / 2 + tilt, y + s * 0.06, cx + tilt, y - s * 0.03, cx + w / 2 + tilt, y + s * 0.06);
+        ctx.fillRect(cx - s * 0.07 + tilt, y, s * 0.14, s * 0.08);
+      }
+    } else if (type === "ruins") {
+      const w = s * 0.95, h = s * 0.72;
+      ctx.fillRect(cx - w / 2, ground - h * 0.35, w, h * 0.35);
+      // pediment with triangular gable and niches
+      ctx.beginPath();
+      ctx.moveTo(cx - w / 2, ground - h * 0.35);
+      ctx.lineTo(cx, ground - h);
+      ctx.lineTo(cx + w / 2, ground - h * 0.35);
+      ctx.closePath(); ctx.fill();
+      glow(0.25);
+      for (let i = -2; i <= 2; i++) {
+        ctx.fillRect(cx + i * s * 0.15 - s * 0.04, ground - h * 0.32, s * 0.08, h * 0.22);
+      }
+      endg();
+    } else if (type === "osakacastle") {
+      for (let i = 0; i < 5; i++) {
+        const y = ground - s * 0.14 * (i + 1) - s * 0.12;
+        const w = s * (0.85 - i * 0.12);
+        ctx.fillRect(cx - w / 2, y, w, s * 0.1);
+        tri(ctx, cx - w / 2 - s * 0.04, y, cx - w / 2, y - s * 0.05, cx - w / 2 + s * 0.08, y);
+        tri(ctx, cx + w / 2 + s * 0.04, y, cx + w / 2, y - s * 0.05, cx + w / 2 - s * 0.08, y);
+      }
+      ctx.fillRect(cx - s * 0.5, ground - s * 0.14, s, s * 0.14);
+      glow(0.35); ctx.fillRect(cx - 2, ground - s * 0.92, 4, 5); endg();
+    } else if (type === "arun") {
+      const prangs = [{ x: 0, h: 1.15, w: 0.22 }, { x: -0.38, h: 0.62, w: 0.14 }, { x: 0.38, h: 0.62, w: 0.14 }];
+      for (const p of prangs) {
+        ctx.beginPath();
+        ctx.moveTo(cx + p.x * s - p.w * s, ground);
+        ctx.lineTo(cx + p.x * s - p.w * s * 0.45, ground - p.h * s * 0.55);
+        ctx.lineTo(cx + p.x * s, ground - p.h * s);
+        ctx.lineTo(cx + p.x * s + p.w * s * 0.45, ground - p.h * s * 0.55);
+        ctx.lineTo(cx + p.x * s + p.w * s, ground);
+        ctx.closePath(); ctx.fill();
+      }
+      glow(0.35); ctx.fillRect(cx - 2, ground - s * 1.18, 4, 5); endg();
+    } else if (type === "petronas") {
+      const gap = s * 0.22, tw = s * 0.2, h = s * 1.15;
+      for (const sign of [-1, 1]) {
+        const x = cx + sign * (gap / 2 + tw / 2);
+        ctx.beginPath();
+        ctx.moveTo(x - tw / 2, ground);
+        ctx.lineTo(x - tw * 0.28, ground - h * 0.72);
+        ctx.lineTo(x, ground - h);
+        ctx.lineTo(x + tw * 0.28, ground - h * 0.72);
+        ctx.lineTo(x + tw / 2, ground);
+        ctx.closePath(); ctx.fill();
+      }
+      ctx.fillRect(cx - gap / 2 - tw * 0.1, ground - h * 0.62, gap + tw * 0.2, s * 0.06);
+      glow(0.4); ctx.fillRect(cx - gap / 2 - tw * 0.15, ground - h - 2, 3, 4); ctx.fillRect(cx + gap / 2 + tw * 0.15 - 3, ground - h - 2, 3, 4); endg();
+    } else if (type === "gateway") {
+      const w = s * 1.05, h = s * 0.72;
+      ctx.fillRect(cx - w / 2, ground - h, w, h);
+      ctx.fillStyle = "#0a0c14";
+      ctx.beginPath();
+      ctx.moveTo(cx - w * 0.22, ground);
+      ctx.quadraticCurveTo(cx, ground - h * 0.85, cx + w * 0.22, ground);
+      ctx.fill();
+      ctx.fillRect(cx - w * 0.42, ground - h * 0.55, w * 0.12, h * 0.4);
+      ctx.fillRect(cx + w * 0.3, ground - h * 0.55, w * 0.12, h * 0.4);
+      ctx.fillStyle = wall;
+      ctx.fillRect(cx - w / 2, ground - h - s * 0.06, w, s * 0.06);
+      for (let i = -1; i <= 1; i++) ctx.fillRect(cx + i * w * 0.28 - 2, ground - h - s * 0.16, 4, s * 0.12);
+    } else if (type === "campanile") {
+      const w = s * 0.22, h = s * 1.15;
+      ctx.fillRect(cx - w / 2, ground - h, w, h);
+      ctx.fillRect(cx - w * 0.85, ground - h - s * 0.08, w * 1.7, s * 0.1);
+      ctx.fillRect(cx - w * 0.55, ground - h - s * 0.2, w * 1.1, s * 0.12);
+      ctx.fillRect(cx - 2, ground - h - s * 0.36, 4, s * 0.16);
+      glow(0.4); ctx.fillRect(cx - 3, ground - h * 0.45, 6, 5); endg();
+    } else if (type === "parthenon") {
+      const w = s * 1.15, h = s * 0.55;
+      ctx.beginPath();
+      ctx.moveTo(cx - w / 2 - s * 0.04, ground - h);
+      ctx.lineTo(cx, ground - h - s * 0.16);
+      ctx.lineTo(cx + w / 2 + s * 0.04, ground - h);
+      ctx.closePath(); ctx.fill();
+      ctx.fillRect(cx - w / 2, ground - h, w, s * 0.06);
+      for (let i = 0; i < 8; i++) {
+        const x = cx - w / 2 + s * 0.06 + i * (w - s * 0.12) / 7;
+        ctx.fillRect(x, ground - h + s * 0.06, s * 0.07, h - s * 0.14);
+      }
+      ctx.fillRect(cx - w / 2, ground - s * 0.08, w, s * 0.08);
+    } else if (type === "charles") {
+      ctx.fillRect(cx - s * 0.7, ground - s * 0.1, s * 1.4, s * 0.1);
+      // left tower taller
+      ctx.fillRect(cx - s * 0.62, ground - s * 0.72, s * 0.2, s * 0.72);
+      ctx.fillRect(cx - s * 0.66, ground - s * 0.8, s * 0.28, s * 0.1);
+      ctx.fillRect(cx + s * 0.38, ground - s * 0.52, s * 0.22, s * 0.52);
+      ctx.fillRect(cx + s * 0.34, ground - s * 0.6, s * 0.3, s * 0.1);
+      ctx.strokeStyle = wall; ctx.lineWidth = Math.max(2, s * 0.04);
+      ctx.beginPath(); ctx.moveTo(cx - s * 0.42, ground - s * 0.22); ctx.lineTo(cx + s * 0.38, ground - s * 0.22); ctx.stroke();
+      glow(0.3); ctx.fillRect(cx - s * 0.54, ground - s * 0.86, 4, 4); endg();
+    } else if (type === "riesenrad") {
+      ctx.strokeStyle = wall; ctx.lineWidth = Math.max(3, s * 0.05);
+      ctx.beginPath(); ctx.arc(cx, ground - s * 0.62, s * 0.55, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(cx, ground - s * 0.62, s * 0.32, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 8; i++) {
+        const a = (i / 8) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(cx, ground - s * 0.62);
+        ctx.lineTo(cx + Math.cos(a) * s * 0.55, ground - s * 0.62 + Math.sin(a) * s * 0.55);
+        ctx.stroke();
+        ctx.fillStyle = wall;
+        ctx.fillRect(cx + Math.cos(a) * s * 0.55 - s * 0.05, ground - s * 0.62 + Math.sin(a) * s * 0.55 - s * 0.035, s * 0.1, s * 0.07);
+      }
+      ctx.fillStyle = wall;
+      ctx.fillRect(cx - s * 0.06, ground - s * 0.2, s * 0.12, s * 0.2);
+    } else if (type === "belem") {
+      const w = s * 0.42, h = s * 0.85;
+      ctx.fillRect(cx - w / 2, ground - h * 0.7, w, h * 0.7);
+      ctx.fillRect(cx - w * 0.7, ground - h * 0.45, w * 0.22, h * 0.45);
+      ctx.fillRect(cx + w * 0.48, ground - h * 0.45, w * 0.22, h * 0.45);
+      ctx.fillRect(cx - w * 0.22, ground - h, w * 0.44, h * 0.32);
+      ctx.fillRect(cx - 2, ground - h - s * 0.12, 4, s * 0.12);
+      glow(0.3); ctx.fillRect(cx - w * 0.12, ground - h * 0.55, w * 0.24, s * 0.06); endg();
+    } else if (type === "spaceneedle") {
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.22, ground);
+      ctx.lineTo(cx - s * 0.04, ground - s * 0.7);
+      ctx.lineTo(cx + s * 0.04, ground - s * 0.7);
+      ctx.lineTo(cx + s * 0.22, ground);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(cx, ground - s * 0.82, s * 0.22, s * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(cx - 2, ground - s * 1.18, 4, s * 0.22);
+      glow(0.45); ctx.beginPath(); ctx.ellipse(cx, ground - s * 0.82, s * 0.1, s * 0.04, 0, 0, Math.PI * 2); ctx.fill(); endg();
+    } else if (type === "hollywood") {
+      const letters = "HOLLYWOOD";
+      const w = s * 1.35, h = s * 0.28;
+      ctx.beginPath();
+      ctx.moveTo(cx - w / 2, ground - s * 0.15);
+      ctx.lineTo(cx + w / 2, ground - s * 0.35);
+      ctx.lineTo(cx + w / 2, ground);
+      ctx.lineTo(cx - w / 2, ground);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = acc; ctx.globalAlpha = 0.85 * lit;
+      ctx.font = `bold ${Math.max(8, s * 0.16)}px sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(letters, cx, ground - s * 0.28);
+      ctx.globalAlpha = 1; ctx.fillStyle = wall;
+    } else if (type === "cntower") {
+      ctx.fillRect(cx - s * 0.045, ground - s * 1.15, s * 0.09, s * 1.15);
+      ctx.beginPath(); ctx.ellipse(cx, ground - s * 0.72, s * 0.16, s * 0.08, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillRect(cx - 1.5, ground - s * 1.32, 3, s * 0.16);
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.2, ground);
+      ctx.lineTo(cx - s * 0.05, ground - s * 0.2);
+      ctx.lineTo(cx + s * 0.05, ground - s * 0.2);
+      ctx.lineTo(cx + s * 0.2, ground);
+      ctx.closePath(); ctx.fill();
+      glow(0.4); ctx.fillRect(cx - 3, ground - s * 0.78, 6, 4); endg();
+    } else if (type === "sunpyramid") {
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.7, ground);
+      ctx.lineTo(cx - s * 0.08, ground - s * 0.85);
+      ctx.lineTo(cx + s * 0.08, ground - s * 0.85);
+      ctx.lineTo(cx + s * 0.7, ground);
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = acc; ctx.globalAlpha = 0.3 * lit; ctx.lineWidth = 1.2;
+      for (let i = 1; i <= 4; i++) {
+        const t = i / 5;
+        const y = ground - s * 0.85 * t;
+        const w = s * 1.4 * (1 - t);
+        ctx.beginPath(); ctx.moveTo(cx - w / 2, y); ctx.lineTo(cx + w / 2, y); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    } else if (type === "obelisco") {
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.08, ground - s * 0.12);
+      ctx.lineTo(cx - s * 0.05, ground - s * 1.05);
+      ctx.lineTo(cx, ground - s * 1.18);
+      ctx.lineTo(cx + s * 0.05, ground - s * 1.05);
+      ctx.lineTo(cx + s * 0.08, ground - s * 0.12);
+      ctx.closePath(); ctx.fill();
+      ctx.fillRect(cx - s * 0.16, ground - s * 0.12, s * 0.32, s * 0.12);
+    } else if (type === "tablemountain") {
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.7, ground);
+      ctx.lineTo(cx - s * 0.55, ground - s * 0.55);
+      ctx.lineTo(cx - s * 0.4, ground - s * 0.7);
+      ctx.lineTo(cx + s * 0.42, ground - s * 0.72);
+      ctx.lineTo(cx + s * 0.58, ground - s * 0.5);
+      ctx.lineTo(cx + s * 0.7, ground);
+      ctx.closePath(); ctx.fill();
+      glow(0.25); ctx.fillRect(cx - s * 0.4, ground - s * 0.74, s * 0.82, s * 0.06); endg();
+    } else if (type === "potala") {
+      // wide terraces, red upper, white lower
+      ctx.fillRect(cx - s * 0.7, ground - s * 0.28, s * 1.4, s * 0.28);
+      ctx.fillRect(cx - s * 0.55, ground - s * 0.5, s * 1.1, s * 0.24);
+      ctx.fillStyle = acc; ctx.globalAlpha = 0.35 * lit;
+      ctx.fillRect(cx - s * 0.38, ground - s * 0.72, s * 0.76, s * 0.24);
+      ctx.globalAlpha = 1; ctx.fillStyle = wall;
+      ctx.fillRect(cx - s * 0.22, ground - s * 0.88, s * 0.44, s * 0.16);
+      for (let i = 0; i < 6; i++) {
+        ctx.fillRect(cx - s * 0.5 + i * s * 0.18, ground - s * 0.86, s * 0.06, s * 0.08);
+      }
+    } else if (type === "welcomesign") {
+      ctx.fillRect(cx - s * 0.04, ground - s * 0.55, s * 0.08, s * 0.55);
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.55, ground - s * 0.95);
+      ctx.lineTo(cx + s * 0.55, ground - s * 0.95);
+      ctx.quadraticCurveTo(cx + s * 0.62, ground - s * 0.7, cx + s * 0.5, ground - s * 0.55);
+      ctx.lineTo(cx - s * 0.5, ground - s * 0.55);
+      ctx.quadraticCurveTo(cx - s * 0.62, ground - s * 0.7, cx - s * 0.55, ground - s * 0.95);
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = acc; ctx.globalAlpha = 0.8 * lit;
+      ctx.font = `bold ${Math.max(7, s * 0.12)}px sans-serif`;
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("WELCOME", cx, ground - s * 0.78);
+      ctx.globalAlpha = 1; ctx.fillStyle = wall;
+    } else if (type === "duomo") {
+      // dome + side campanile
+      ctx.fillRect(cx - s * 0.45, ground - s * 0.4, s * 0.7, s * 0.4);
+      ctx.beginPath();
+      ctx.moveTo(cx - s * 0.32, ground - s * 0.4);
+      ctx.quadraticCurveTo(cx - s * 0.1, ground - s * 0.95, cx - s * 0.1, ground - s * 1.02);
+      ctx.lineTo(cx + s * 0.12, ground - s * 1.02);
+      ctx.quadraticCurveTo(cx + s * 0.12, ground - s * 0.95, cx + s * 0.22, ground - s * 0.4);
+      ctx.closePath(); ctx.fill();
+      ctx.fillRect(cx - s * 0.13, ground - s * 1.14, s * 0.06, s * 0.12);
+      // campanile
+      ctx.fillRect(cx + s * 0.32, ground - s * 0.85, s * 0.16, s * 0.85);
+      ctx.fillRect(cx + s * 0.3, ground - s * 0.95, s * 0.2, s * 0.12);
+      glow(0.35); ctx.fillRect(cx - s * 0.14, ground - s * 1.18, 4, 4); endg();
     } else {
       ctx.fillRect(cx - s * 0.08, ground - s, s * 0.16, s);
     }

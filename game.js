@@ -245,6 +245,69 @@
   }
   makeGlows();
 
+  function bindBoardZoom() {
+    const el = board;
+    if (!el || el._zoomBound) return;
+    el._zoomBound = true;
+    el.style.touchAction = "none";
+    const pts = new Map();
+    let lastDist = 0, lastMid = null, lastOne = null;
+    const stageSize = () => {
+      const wrap = $("#stage");
+      if (wrap) layout(wrap.clientWidth, wrap.clientHeight);
+      glowDirty = true;
+    };
+    el.addEventListener("pointerdown", (e) => {
+      if (screen !== "game") return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      try { el.setPointerCapture(e.pointerId); } catch (err) {}
+      if (pts.size === 2) {
+        const a = [...pts.values()];
+        lastDist = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+        lastMid = { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 };
+      } else if (pts.size === 1) {
+        lastOne = { x: e.clientX, y: e.clientY };
+      }
+    });
+    el.addEventListener("pointermove", (e) => {
+      if (!pts.has(e.pointerId)) return;
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pts.size === 2) {
+        const a = [...pts.values()];
+        const dist = Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y);
+        const mid = { x: (a[0].x + a[1].x) / 2, y: (a[0].y + a[1].y) / 2 };
+        if (lastDist > 8) {
+          viewZoom = Math.max(1, Math.min(2.8, viewZoom * (dist / lastDist)));
+          viewPanX += mid.x - lastMid.x;
+          viewPanY += mid.y - lastMid.y;
+          if (viewZoom <= 1.02) { viewZoom = 1; viewPanX = 0; viewPanY = 0; }
+          stageSize();
+        }
+        lastDist = dist; lastMid = mid;
+      } else if (pts.size === 1 && viewZoom > 1.02 && lastOne) {
+        viewPanX += e.clientX - lastOne.x;
+        viewPanY += e.clientY - lastOne.y;
+        lastOne = { x: e.clientX, y: e.clientY };
+        stageSize();
+      }
+    });
+    const up = (e) => { pts.delete(e.pointerId); if (pts.size < 2) lastDist = 0; if (!pts.size) lastOne = null; };
+    el.addEventListener("pointerup", up);
+    el.addEventListener("pointercancel", up);
+    el.addEventListener("dblclick", () => { resetView(); stageSize(); });
+    el.addEventListener("wheel", (e) => {
+      if (screen !== "game" || !LV) return;
+      e.preventDefault();
+      const factor = e.deltaY > 0 ? 0.92 : 1.08;
+      viewZoom = Math.max(1, Math.min(2.8, viewZoom * factor));
+      if (viewZoom <= 1.02) { viewZoom = 1; viewPanX = 0; viewPanY = 0; }
+      stageSize();
+    }, { passive: false });
+  }
+  bindBoardZoom();
+
+
+  let viewZoom = 1, viewPanX = 0, viewPanY = 0;
   let bloomCv = document.createElement("canvas");
   let bloomCtx = bloomCv.getContext("2d");
   let skyCv = document.createElement("canvas");
@@ -286,11 +349,34 @@
     const streetY = h - slotBand;
     const sky = Math.max(52, h * 0.11);
     const cityH = Math.max(100, streetY - sky - 6);
-    const cs = Math.max(9, Math.min((w - 12) / LV.W, cityH / LV.H));
-    const ox = (w - cs * LV.W) / 2;
-    const oy = streetY - 8 - cs * LV.H;
-    geo = { w, h, cs, ox, oy, sky, street: slotBand, streetY };
+    const fit = Math.max(8, Math.min((w - 12) / LV.W, cityH / LV.H));
+    const zoom = viewZoom || 1;
+    const cs = fit * zoom;
+    let ox = (w - cs * LV.W) / 2 + viewPanX;
+    let oy = streetY - 8 - cs * LV.H + viewPanY;
+    if (zoom > 1.01) {
+      const minOx = Math.min(8, w - 8 - cs * LV.W);
+      const maxOx = Math.max(8, w - 8 - cs * LV.W);
+      // actually we want to be able to pan to see all cells
+      const loX = Math.min(8, w - 8 - cs * LV.W);
+      const hiX = Math.max(8, w - 8 - cs * LV.W);
+      ox = Math.max(loX, Math.min(hiX, ox));
+      const loY = Math.min(sky + 4, streetY - 8 - cs * LV.H);
+      const hiY = Math.max(sky + 4, streetY - 8 - cs * LV.H);
+      oy = Math.max(loY, Math.min(hiY, oy));
+    }
+    geo = { w, h, cs, ox, oy, sky, street: slotBand, streetY, fit, zoom };
   }
+
+  function cellAt(localX, localY) {
+    if (!geo || !LV || !geo.cs) return null;
+    const x = Math.floor((localX - geo.ox) / geo.cs);
+    const y = Math.floor((localY - geo.oy) / geo.cs);
+    if (x < 0 || y < 0 || x >= LV.W || y >= LV.H) return null;
+    return { x, y };
+  }
+
+  function resetView() { viewZoom = 1; viewPanX = 0; viewPanY = 0; }
 
   function cellXY(x, y) {
     return { x: geo.ox + (x + 0.5) * geo.cs, y: geo.oy + (y + 0.5) * geo.cs };
@@ -551,6 +637,7 @@
   function loadLevel(i) {
     const src = levelAt(i);
     LV = src;
+    resetView();
     preview = null;
     holdTimer = 0;
     holdCi = -1;
@@ -694,7 +781,8 @@
         if (s.hold) {
           d.innerHTML = `<button class="box in" style="background:${col.fill};color:${col.ink}"><span class="tag">招牌</span></button>`;
         } else {
-          d.innerHTML = `<button class="box in" style="background:${col.fill};color:${col.ink}">${s._wait ? '<span class="sleeper">💤</span>' : ""}${s.n}${s._wait ? '<i class="zz">zz</i>' : ""}${s.duo ? '<span class="tag">双槽</span>' : ""}</button>`;
+          const patCls = (col.pat && col.pat !== "solid") ? (" pat-" + col.pat) : "";
+          d.innerHTML = `<button class="box in${patCls}" style="background:${col.fill};color:${col.ink}">${s._wait ? '<span class="sleeper">💤</span>' : ""}${s.n}${s._wait ? '<i class="zz">zz</i>' : ""}${s.duo ? '<span class="tag">双槽</span>' : ""}</button>`;
         }
       }
       bar.appendChild(d);
@@ -717,6 +805,7 @@
         btn.className = "box" + (t.duo ? " duo" : "");
         btn.style.background = hidden ? "#3a3558" : colr.fill;
         btn.style.color = hidden ? "#dcd6ff" : colr.ink;
+        if (!hidden && colr.pat && colr.pat !== "solid") btn.classList.add("pat-" + colr.pat);
         btn.dataset.k = k;
         btn.textContent = hidden ? "?" : String(t.n);
         if (k === 0) {
@@ -1077,7 +1166,7 @@
     SFX.win();
     if (LV && LV.theme === "newyear") {
       for (let i = 0; i < 40; i++) {
-        const col = C.COLORS[i % 6].glow;
+        const col = C.COLORS[i % C.COLORS.length].glow;
         burst(geo.w * (0.2 + Math.random() * 0.6), geo.sky * (0.3 + Math.random() * 0.4), col, 8);
       }
     }
@@ -1086,7 +1175,7 @@
     const chapterEnd = LV && (li + 1) % PAGE === 0;
     if (chapterEnd && geo) {
       for (let i = 0; i < 36; i++) {
-        const col = C.COLORS[i % 6].glow;
+        const col = C.COLORS[i % C.COLORS.length].glow;
         burst(geo.w * (0.15 + Math.random() * 0.7), (geo.sky || 80) * (0.2 + Math.random() * 0.6), col, 8);
       }
     }
@@ -1445,6 +1534,7 @@
         } else {
           ctx.fillRect(wx, wy, ww, wh);
         }
+        if (C.drawColorPattern && col.pat) C.drawColorPattern(ctx, wx, wy, ww, wh, col.pat, col.ink, locked ? 0.35 : 0.5);
         ctx.globalAlpha = 1;
         // special kinds
         if (cell.key || cell.kind === "button" || cell.kind === "breaker" || cell.kind === "switch" || cell.kind === "beacon") {

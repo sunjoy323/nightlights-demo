@@ -21,9 +21,9 @@ const EXPECT = {
   lock: "001212333",
 };
 
-const TOTAL = Number(process.argv[2] || 500);
-const BIN = path.join(__dirname, "docs", "levels-500.bin");
-const CURVE = path.join(__dirname, "docs", "curve-1-500.json");
+const TOTAL = Number(process.argv[2] || 1000);
+const BIN = path.join(__dirname, "docs", "levels-1000.bin");
+const CURVE = path.join(__dirname, "docs", "curve-1-1000.json");
 const BANK_JS = path.join(__dirname, "levels-bank.js");
 
 function loadBank() {
@@ -153,4 +153,15 @@ if (fail) {
   console.error("\n" + fail + " failed");
   process.exit(1);
 }
+const lights = after.map((x) => x.lights).filter((v) => v != null);
+const ncols = after.map((x) => x.nColors).filter((v) => v != null);
+if (lights.length) {
+  const avg = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+  console.log("lights after tutorial: min", Math.min(...lights), "avg", avg(lights).toFixed(0), "max", Math.max(...lights));
+}
+if (ncols.length) {
+  const avg = (a) => a.reduce((s, v) => s + v, 0) / a.length;
+  console.log("colors after tutorial: min", Math.min(...ncols), "avg", avg(ncols).toFixed(1), "max", Math.max(...ncols));
+}
 console.log("\nAll", Math.min(TOTAL, bank.n), "levels ok.");
+
