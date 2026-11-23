@@ -8,7 +8,7 @@
   const SLOT_N = 5;
   const SAVE_KEY = "nightlights-save-v1";
   const PAGE = 20;
-  const MAX_MENU = 1000;
+  const MAX_MENU = (G && G.MAX_MENU) || 500;
 
   let screen = "menu";
   let li = 0;
@@ -81,13 +81,24 @@
     satellite:   { sky0:"#08141c", sky1:"#102028", sky2:"#183040", fog:"rgba(60,200,200,0.14)", signs:["卫星城","新区"], accent:"#7ee7ff", wall:["#0c1c24","#142830"] },
     newyear:     { sky0:"#14081c", sky1:"#281030", sky2:"#4a1848", fog:"rgba(255,200,80,0.20)", signs:["跨年","倒计时"], accent:"#ffd56a", wall:["#1c1028","#2c1838"] },
   };
+  function waterOf(src) {
+    if (!src || !src.water) return { water: null, waterHi: null };
+    const col = (typeof src.water === "string" && src.water[0] === "#") ? src.water : "#101c32";
+    const hi = (typeof src.waterHi === "string") ? src.waterHi : "#2a5080";
+    return { water: col, waterHi: hi };
+  }
   function themeOf(L) {
     if (L && L.themeDef && L.themeDef.sky0) {
       const d = L.themeDef;
-      return { sky0: d.sky0, sky1: d.sky1, sky2: d.sky2, accent: d.accent || "#ffd56a", wall: d.wall || ["#1a1628", "#241e38"], signs: d.signs || [L.name], water: !!d.water, fog: null };
+      return { sky0: d.sky0, sky1: d.sky1, sky2: d.sky2, accent: d.accent || "#ffd56a", wall: d.wall || ["#1a1628", "#241e38"], signs: d.signs || [L.name], ...waterOf(d), fog: null, landmark: d.landmarkType || L.landmarkType };
+    }
+    const WW = window.NightWorld;
+    if (WW && L && L.n) {
+      const city = WW.cityOf(L.n);
+      if (city) return { sky0: city.sky0, sky1: city.sky1, sky2: city.sky2, accent: city.accent, wall: city.wall, signs: city.signs, ...waterOf(city), fog: null, landmark: city.landmark };
     }
     const th = THEMES[(L && (L.theme || L.id)) || "river"] || THEMES.river;
-    return { ...th, fog: null };
+    return { ...th, ...waterOf(th), fog: null };
   }
   function levelAt(i) { return G && G.getLevel ? G.getLevel(i) : C.LEVELS[i]; }
 
@@ -96,12 +107,13 @@
   function loadSave() {
     try {
       const s = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
-      if (s && s.v === 1 && s.stars) return { v: 1, stars: s.stars, unlocked: s.unlocked || 1, all: !!s.all, seenIntro: s.seenIntro || {} };
+      if (s && s.v === 1 && s.stars) return { v: 1, stars: s.stars, unlocked: s.unlocked || 1, all: !!s.all, seenIntro: s.seenIntro || {}, seenChapter: s.seenChapter || {} };
     } catch (e) {}
-    return { v: 1, stars: {}, unlocked: 1, all: false, seenIntro: {} };
+    return { v: 1, stars: {}, unlocked: 1, all: false, seenIntro: {}, seenChapter: {} };
   }
   let save = loadSave();
   if (!save.seenIntro) save.seenIntro = {};
+  if (!save.seenChapter) save.seenChapter = {};
   function persist() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(save)); } catch (e) {}
   }
@@ -191,7 +203,9 @@
   }
   function lerp(a, b, t) { return a + (b - a) * t; }
   function hexA(h, a) {
-    const n = (h || "#ffffff").replace("#", "");
+    if (Array.isArray(h)) h = h[0];
+    if (typeof h !== "string" || !h.startsWith("#")) h = "#ffffff";
+    const n = h.replace("#", "");
     const r = parseInt(n.slice(0, 2), 16), g = parseInt(n.slice(2, 4), 16), b = parseInt(n.slice(4, 6), 16);
     return `rgba(${r},${g},${b},${a})`;
   }
@@ -356,7 +370,70 @@
     return { blds, skylineFar, skylineMid, lamps, seed: r };
   }
 
+  function projectCity(city, w, h) {
+    const x = (city.lon + 130) / 290 * w;
+    const y = (62 - city.lat) / 112 * h;
+    return { x: Math.max(8, Math.min(w - 8, x)), y: Math.max(10, Math.min(h - 10, y)) };
+  }
+  function drawWorldMap(cv, opt) {
+    if (!cv) return;
+    const WW = window.NightWorld;
+    if (!WW) return;
+    const w = cv.width, h = cv.height;
+    const c = cv.getContext("2d");
+    c.clearRect(0, 0, w, h);
+    const g = c.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, "#0a1020");
+    g.addColorStop(1, "#101828");
+    c.fillStyle = g;
+    c.fillRect(0, 0, w, h);
+    // faint water / land wash
+    c.fillStyle = "rgba(50,90,120,0.18)";
+    c.fillRect(0, 0, w, h);
+    c.fillStyle = "rgba(40,70,60,0.2)";
+    c.beginPath();
+    c.ellipse(w * 0.22, h * 0.42, w * 0.18, h * 0.28, -0.3, 0, Math.PI * 2);
+    c.ellipse(w * 0.52, h * 0.38, w * 0.28, h * 0.26, 0.2, 0, Math.PI * 2);
+    c.ellipse(w * 0.82, h * 0.48, w * 0.16, h * 0.22, 0, 0, Math.PI * 2);
+    c.ellipse(w * 0.78, h * 0.78, w * 0.12, h * 0.14, 0, 0, Math.PI * 2);
+    c.fill();
+    const cities = WW.CITIES;
+    const pts = cities.map((city) => projectCity(city, w, h));
+    c.strokeStyle = "rgba(255,213,106,0.35)";
+    c.lineWidth = 1.4;
+    c.setLineDash([4, 4]);
+    c.beginPath();
+    pts.forEach((p, i) => { if (i === 0) c.moveTo(p.x, p.y); else c.lineTo(p.x, p.y); });
+    c.stroke();
+    c.setLineDash([]);
+    const page = (opt && opt.page) || 0;
+    cities.forEach((city, i) => {
+      const p = pts[i];
+      const done = !!save.stars[i * PAGE + 19];
+      const open = save.all || i * PAGE < save.unlocked || save.stars[i * PAGE] != null || i === 0;
+      const cur = i === page;
+      c.beginPath();
+      c.fillStyle = done ? "#ffd56a" : cur ? "#7ee7ff" : open ? "#c8e4ff" : "#3a3a55";
+      c.arc(p.x, p.y, cur ? 5 : 3.2, 0, Math.PI * 2);
+      c.fill();
+      if (cur) {
+        c.strokeStyle = "#ffd56a";
+        c.lineWidth = 1.2;
+        c.beginPath(); c.arc(p.x, p.y, 8, 0, Math.PI * 2); c.stroke();
+        c.fillStyle = "#f3efe4";
+        c.font = "bold 11px sans-serif";
+        c.textAlign = "center";
+        c.fillText(city.name, p.x, Math.max(14, p.y - 12));
+      }
+    });
+    c.fillStyle = "rgba(243,239,228,0.7)";
+    c.font = "10px sans-serif";
+    c.textAlign = "left";
+    c.fillText("环球电工的夜班航线", 10, h - 8);
+  }
+
   /* ---------- menu ---------- */
+
   function openMenu() {
     screen = "menu";
     LV = null;
@@ -379,10 +456,19 @@
     if (menuPage < 0) menuPage = 0;
     const chap = menuPage + 1;
     const chapName = G && G.chapterName ? G.chapterName(menuPage * PAGE + 1) : ("第 " + chap + " 章");
-    if (prog) prog.textContent = save.all
-      ? `已入睡 ${cleared} 座城 · 图鉴 ${cleared} · 测试解锁`
-      : `已入睡 ${cleared} 座城 · 图鉴可回看`;
+    if (prog) {
+      const citiesDone = (window.NightWorld && window.NightWorld.CITIES)
+        ? window.NightWorld.CITIES.filter((_, ci) => save.stars[ci * PAGE + 19]).length
+        : 0;
+      const walked = Math.max(citiesDone, menuPage + (cleared ? 1 : 0) > 0 ? Math.min(menuPage + 1, citiesDone + 1) : 0);
+      prog.textContent = save.all
+        ? `已走过 ${Math.max(citiesDone, 1)} 座城 · 关了 ${cleared} 处夜景 · 测试解锁`
+        : `已走过 ${Math.max(citiesDone, cleared ? 1 : 0)} 座城 · 关了 ${cleared} 处夜景`;
+    }
     if ($("#pageLab")) $("#pageLab").textContent = `第 ${chap} 章 · ${chapName}`;
+    const city = window.NightWorld && window.NightWorld.cityOf(menuPage * PAGE + 1);
+    if ($("#chapterLine")) $("#chapterLine").textContent = city ? city.open : "";
+    drawWorldMap($("#worldMap"), { page: menuPage, city });
     if ($("#pagePrev")) $("#pagePrev").disabled = menuPage <= 0;
     if ($("#pageNext")) $("#pageNext").disabled = menuPage >= pages - 1;
     const box = $("#levels");
@@ -425,6 +511,13 @@
     c.fillRect(0, 0, W, H);
     c.fillStyle = "rgba(255,255,255,.5)";
     for (let i = 0; i < 16; i++) c.fillRect((i * 47) % W, (i * 29) % (H * 0.4), 1.4, 1.4);
+    const type = L.landmarkType || (th && th.landmark);
+    if (type && window.NightLandmarks) {
+      c.save();
+      window.NightLandmarks.draw(c, type, W * 0.72, H - 8, Math.min(W, H) * 0.72, { wall: (th.wall && th.wall[0]) || "#0a0c14", accent: th.accent, lit: open ? 0.85 : 0.2 });
+      c.restore();
+    }
+
     const cs = Math.min((W - 16) / L.W, (H - 22) / L.H);
     const ox = (W - cs * L.W) / 2, oy = 12 + (H - 22 - cs * L.H);
     for (let y = 0; y < L.H; y++) {
@@ -499,7 +592,7 @@
     updateHud();
     resize();
     if (src.coach) startCoach();
-    else if (!showIntroIfNeeded(i)) toast(src.hint, true);
+    else if (showChapterIfNeeded(i)) {} else if (!showIntroIfNeeded(i)) toast(src.hint, true);
   }
 
   function snapshot() {
@@ -627,15 +720,7 @@
         btn.dataset.k = k;
         btn.textContent = hidden ? "?" : String(t.n);
         if (k === 0) {
-          const canWork = !!C.findTarget(grid, t.c, unlocked, takes);
           const isGate = colorIsGate(t.c);
-          if (!canWork) {
-            btn.classList.add("waitish");
-            const z = document.createElement("span");
-            z.className = "prezz";
-            z.textContent = t.duo && !C.canPlaceTicket(slots, slotCount, t) ? "双槽" : "等";
-            btn.appendChild(z);
-          }
           if (isGate) {
             btn.classList.add("gate");
             const m = document.createElement("span");
@@ -665,14 +750,28 @@
     if (coach) showCoach();
   }
 
+  function ensureAppToast() {
+    let el = $("#appToast");
+    if (el) return el;
+    el = document.createElement("div");
+    el.id = "appToast";
+    ($("#app") || document.body).appendChild(el);
+    return el;
+  }
   function toast(msg, soft) {
     toastMsg = msg;
     toastT = soft ? 2.2 : 1.6;
-    const el = $("#toast");
+    const inGame = $("#game") && !$("#game").hidden;
+    const el = inGame && $("#toast") ? $("#toast") : ensureAppToast();
     el.textContent = msg;
+    el.hidden = false;
     el.classList.add("show");
     el.classList.toggle("soft", !!soft);
     if (!soft) SFX.toast();
+    if (el.id === "appToast") {
+      clearTimeout(el._hide);
+      el._hide = setTimeout(() => { el.classList.remove("show"); }, (soft ? 2200 : 1600) + 200);
+    }
   }
 
   function flyCard(fromEl, color, text, ink) {
@@ -983,11 +1082,20 @@
       }
     }
     $("#winBox").hidden = false;
-    $("#winNext").hidden = li >= C.LEVELS.length - 1;
-    $("#winTitle").textContent = "晚安";
+    $("#winNext").hidden = li >= MAX_MENU - 1;
+    const chapterEnd = LV && (li + 1) % PAGE === 0;
+    if (chapterEnd && geo) {
+      for (let i = 0; i < 36; i++) {
+        const col = C.COLORS[i % 6].glow;
+        burst(geo.w * (0.15 + Math.random() * 0.7), (geo.sky || 80) * (0.2 + Math.random() * 0.6), col, 8);
+      }
+    }
+    $("#winTitle").textContent = chapterEnd && LV.cityName ? (LV.cityName + "已入睡") : "晚安";
     const starEl = $("#winStars");
     if (starEl) starEl.innerHTML = "★".repeat(starsN) + `<span class="dim">${"★".repeat(3 - starsN)}</span>`;
-    $("#winSub").textContent = (LV.quote || "城市已入睡。") + " · " + LV.name;
+    $("#winSub").textContent = chapterEnd
+      ? ((LV.close || LV.quote || "这座城把星空要了回来。") + (LV.character ? " — " + LV.character : ""))
+      : ((LV.quote || "城市已入睡。") + " · " + LV.name);
   }
 
   function rewind() {
@@ -1628,16 +1736,8 @@
         if (grid[y][x] && grid[y][x].on && grid[y][x].c === t.c && C.isReachable(grid, x, y, unlocked, takes))
           cells.push([x, y]);
     preview = { ci, cells, waiting: !cells.length, duo: !!t.duo, canPlace: C.canPlaceTicket(slots, slotCount, t) };
-    let tag = $("#previewTag");
-    if (!tag) {
-      tag = document.createElement("div");
-      tag.id = "previewTag";
-      $("#stage").appendChild(tag);
-    }
-    tag.hidden = false;
-    tag.textContent = !preview.canPlace
-      ? (t.duo ? "这块招牌要两个挨着的槽" : "电闸槽满了")
-      : (preview.waiting ? "进槽后还不能关，小电工会等" : "进槽后可以开工 · " + cells.length + " 盏");
+    const tag = $("#previewTag");
+    if (tag) tag.hidden = true;
     const btn = $(`.tcol[data-c="${ci}"] .box[data-k="0"]`);
     if (btn) btn.classList.add("previewing");
   }
@@ -1660,7 +1760,33 @@
     if (id === "hidden") return '<div class="city"></div><div class="q">?</div>';
     return '<div class="city"></div>';
   }
+  function showChapterIfNeeded(i) {
+    const WW = window.NightWorld;
+    if (!WW) return false;
+    const n = i + 1;
+    if ((n - 1) % PAGE !== 0) return false;
+    const city = WW.cityOf(n);
+    if (!city) return false;
+    save.seenChapter = save.seenChapter || {};
+    if (save.seenChapter[city.id]) return false;
+    const el = $("#storyCard");
+    if (!el) return false;
+    $("#storyTitle").textContent = "夜班到达 · " + city.name;
+    $("#storyLine").textContent = city.open;
+    el.hidden = false;
+    return true;
+  }
+  function dismissStory() {
+    const WW = window.NightWorld;
+    if (WW && LV) {
+      const city = WW.cityOf(LV.n || li + 1);
+      if (city) { save.seenChapter = save.seenChapter || {}; save.seenChapter[city.id] = true; persist(); }
+    }
+    if ($("#storyCard")) $("#storyCard").hidden = true;
+    if (LV && LV.hint && !showIntroIfNeeded(li)) toast(LV.hint, true);
+  }
   function showIntroIfNeeded(i) {
+
     if (!G || !G.introFor) return false;
     const intro = G.introFor(i + 1);
     if (!intro) return false;
@@ -1689,14 +1815,42 @@
     $("#menu").hidden = true;
     $("#album").hidden = false;
     const ids = Object.keys(save.stars).map(Number).sort((a, b) => a - b);
-    $("#albumProg").textContent = ids.length ? ("已收下 " + ids.length + " 张夜景明信片") : "通关后，关掉的城市会收进这里";
+    const WW = window.NightWorld;
+    const cities = WW ? WW.CITIES : [];
+    const stamped = cities.filter((_, ci) => save.stars[ci * PAGE + 19]).length;
+    $("#albumProg").textContent = ids.length
+      ? ("已收下 " + ids.length + " 张明信片 · " + stamped + " 枚城市邮戳")
+      : "通关后，关掉的夜景会收成明信片";
     const box = $("#postcards");
     box.innerHTML = "";
-    // show collected, plus landmark placeholders up to current chapter
+    const tabs = $("#albumCities");
+    if (tabs) {
+      tabs.innerHTML = "";
+      const all = document.createElement("button");
+      all.type = "button";
+      all.className = "stamp" + (save._albumCity == null ? " on" : "");
+      all.textContent = "全部";
+      all.onclick = () => { save._albumCity = null; openAlbum(); };
+      tabs.appendChild(all);
+      cities.forEach((city, ci) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        const got = !!save.stars[ci * PAGE + 19];
+        const any = Object.keys(save.stars).some((k) => (k | 0) >= ci * PAGE && (k | 0) < ci * PAGE + PAGE);
+        b.className = "stamp" + (save._albumCity === city.id ? " on" : "") + (got ? " got" : "");
+        b.textContent = got || any ? city.name : "？";
+        b.disabled = !any && !save.all;
+        b.onclick = () => { save._albumCity = city.id; openAlbum(); };
+        tabs.appendChild(b);
+      });
+    }
+    const cityId = save._albumCity;
     const maxI = Math.max(ids.length ? ids[ids.length - 1] : 0, 19);
-    const show = new Set(ids);
-    for (let k = 9; k <= maxI; k += 10) show.add(k);
-    const list = [...show].sort((a, b) => a - b);
+    const list = [];
+    for (let i = 0; i <= maxI && i < MAX_MENU; i++) {
+      if (cityId && WW && WW.cityOf(i + 1).id !== cityId) continue;
+      if (save.stars[i] != null || (i + 1) % 10 === 0) list.push(i);
+    }
     if (!list.length) {
       const p = document.createElement("div");
       p.className = "postcard empty";
@@ -1716,7 +1870,8 @@
       const meta = document.createElement("div");
       meta.className = "meta";
       const st = save.stars[i] || 0;
-      meta.innerHTML = `<strong>${has ? L.name : "？？？"}</strong>` +
+      const cityName = L.cityName ? `<em class="city-tag">${L.cityName}</em>` : "";
+      meta.innerHTML = cityName + `<strong>${has ? L.name : "？？？"}</strong>` +
         (has ? `<span class="star">${"★".repeat(st)}</span>` : `<span>地标还未入睡</span>`);
       b.append(cv, meta);
       if (has) b.onclick = () => viewCard(i);
@@ -1727,7 +1882,7 @@
     const L = levelAt(i);
     const st = save.stars[i] || 0;
     $("#cardName").textContent = L.name;
-    $("#cardQuote").textContent = L.quote || "城市已入睡。";
+    $("#cardQuote").textContent = (L.character ? L.character + "：\n" : "") + (L.quote || "城市已入睡。");
     $("#cardStars").textContent = "★".repeat(st) + "☆".repeat(3 - st);
     drawThumb($("#cardCanvas"), L, true);
     $("#cardView").hidden = false;
@@ -1735,154 +1890,39 @@
 
   function drawLandmark(k, th) {
     if (!LV || !geo) return;
-    const type = LV.landmarkType
-      || (LV.theme === "newyear" ? "tower" : LV.theme === "fishery" ? "crane"
-        : LV.theme === "bridge" ? "bridge" : LV.theme === "park" ? "wheel"
-        : LV.theme === "airport" ? "wing" : LV.theme === "plant" ? "stack"
-        : LV.theme === "cinema" ? "hall" : LV.theme === "onsen" ? "roof"
-        : null);
-    if (!type && !LV.landmark) return;
-    const kind = type || "tower";
+    const type = LV.landmarkType || (th && th.landmark);
+    if (!type || !window.NightLandmarks) return;
     const special = !!LV.landmark;
-    const s = special ? 1.4 : 1.0;
-    let x = geo.w * 0.78, ground = (geo.oy || 80) - 4;
+    const s = Math.min(geo.w * 0.42, Math.max(90, (geo.oy || 80) * (special ? 0.85 : 0.62)));
+    // sit in the sky above the shortest roof on the right, or just above playable tops
+    let cx = geo.w * 0.78, ground = (geo.oy || 80) - 4;
     if (grid && LV && geo.cs) {
-      let bestRoof = 0, bestX = x;
-      const x0 = Math.floor(LV.W * 0.55);
+      let bestRoof = 0, bestX = cx, found = false;
+      const x0 = Math.floor(LV.W * 0.45);
       for (let gx = x0; gx < LV.W; gx++) {
         let roof = LV.H;
         for (let gy = 0; gy < LV.H; gy++) {
           if (grid[gy][gx]) { roof = gy; break; }
         }
-        if (roof >= bestRoof) { bestRoof = roof; bestX = geo.ox + (gx + 0.5) * geo.cs; }
+        if (roof >= bestRoof) { bestRoof = roof; bestX = geo.ox + (gx + 0.5) * geo.cs; found = true; }
       }
-      x = bestX;
-      ground = geo.oy + bestRoof * geo.cs - 2;
+      if (found && bestRoof > 1) {
+        cx = bestX;
+        ground = geo.oy + bestRoof * geo.cs - 2;
+      } else {
+        // fully built skyline: draw behind / above the roofs at the right third
+        cx = geo.ox + LV.W * geo.cs * 0.78;
+        ground = geo.oy - 2;
+      }
     }
-    if (kind === "bridge" || kind === "pier" || kind === "crane") {
-      x = Math.min(x, geo.w * 0.7);
-    }
-    ctx.save();
-    ctx.globalAlpha = special ? 0.88 : 0.62;
-    ctx.fillStyle = lerpC((th && th.wall && th.wall[0]) || "#121018", "#000000", 0.15);
-    const acc = hexA((th && th.accent) || "#ffd56a", 0.75 * (1 - k * 0.4));
-    ctx.shadowColor = "rgba(0,0,0,0.45)";
-    ctx.shadowBlur = 6;
-    const bar = (bx, by, bw, bh) => { ctx.fillRect(bx, by, bw, bh); };
-    const tri = (x0, y0, x1, y1, x2, y2) => {
-      ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.lineTo(x2, y2); ctx.fill();
-    };
-    if (kind === "tower" || kind === "tvtower") {
-      bar(x, ground - 90 * s, 10 * s, 90 * s);
-      tri(x - 8 * s, ground - 70 * s, x + 5 * s, ground - 100 * s, x + 18 * s, ground - 70 * s);
-      ctx.fillStyle = acc; bar(x + 3 * s, ground - 104 * s, 4 * s, 4 * s);
-    } else if (kind === "clock") {
-      bar(x, ground - 70 * s, 16 * s, 70 * s);
-      ctx.beginPath(); ctx.arc(x + 8 * s, ground - 78 * s, 14 * s, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = acc;
-      ctx.beginPath(); ctx.arc(x + 8 * s, ground - 78 * s, 4 * s, 0, Math.PI * 2); ctx.fill();
-    } else if (kind === "bridge" || kind === "crane") {
-      bar(x - 40 * s, ground - 8 * s, 90 * s, 6 * s);
-      bar(x, ground - 50 * s, 5 * s, 50 * s);
-      tri(x + 5 * s, ground - 50 * s, x + 40 * s, ground - 10 * s, x + 5 * s, ground - 10 * s);
-    } else if (kind === "lighthouse") {
-      bar(x, ground - 80 * s, 12 * s, 80 * s);
-      tri(x - 6 * s, ground - 80 * s, x + 6 * s, ground - 100 * s, x + 18 * s, ground - 80 * s);
-      ctx.fillStyle = acc; bar(x + 4 * s, ground - 70 * s, 4 * s, 6 * s);
-    } else if (kind === "pagoda") {
-      for (let i = 0; i < 4; i++) {
-        const yy = ground - (22 * s) * (i + 1);
-        const hw = (18 - i * 3) * s;
-        tri(x - hw, yy + 14 * s, x + 6 * s, yy - 4 * s, x + 6 * s + hw, yy + 14 * s);
-        bar(x, yy, 12 * s, 16 * s);
-      }
-    } else if (kind === "dome") {
-      bar(x - 6 * s, ground - 30 * s, 28 * s, 30 * s);
-      ctx.beginPath(); ctx.arc(x + 8 * s, ground - 30 * s, 16 * s, Math.PI, 0); ctx.fill();
-    } else if (kind === "pavilion") {
-      bar(x - 4 * s, ground - 28 * s, 20 * s, 28 * s);
-      tri(x - 14 * s, ground - 26 * s, x + 6 * s, ground - 52 * s, x + 26 * s, ground - 26 * s);
-      ctx.fillStyle = acc; bar(x + 4 * s, ground - 18 * s, 4 * s, 8 * s);
-    } else if (kind === "temple") {
-      bar(x - 8 * s, ground - 28 * s, 36 * s, 28 * s);
-      tri(x - 16 * s, ground - 28 * s, x + 10 * s, ground - 52 * s, x + 36 * s, ground - 28 * s);
-    } else if (kind === "hall") {
-      bar(x - 10 * s, ground - 36 * s, 40 * s, 36 * s);
-      tri(x - 12 * s, ground - 36 * s, x + 10 * s, ground - 52 * s, x + 32 * s, ground - 36 * s);
-      bar(x - 2 * s, ground - 16 * s, 8 * s, 16 * s);
-    } else if (kind === "roof") {
-      bar(x, ground - 28 * s, 28 * s, 28 * s);
-      tri(x - 6 * s, ground - 28 * s, x + 14 * s, ground - 48 * s, x + 34 * s, ground - 28 * s);
-    } else if (kind === "lane") {
-      bar(x, ground - 32 * s, 14 * s, 32 * s);
-      bar(x + 16 * s, ground - 24 * s, 12 * s, 24 * s);
-      tri(x - 2 * s, ground - 32 * s, x + 7 * s, ground - 44 * s, x + 16 * s, ground - 32 * s);
-    } else if (kind === "bowl") {
-      ctx.beginPath();
-      ctx.moveTo(x - 28 * s, ground);
-      ctx.quadraticCurveTo(x + 4 * s, ground - 40 * s, x + 36 * s, ground);
-      ctx.fill();
-    } else if (kind === "cross") {
-      bar(x, ground - 40 * s, 18 * s, 40 * s);
-      ctx.fillStyle = acc;
-      bar(x + 6 * s, ground - 54 * s, 6 * s, 18 * s);
-      bar(x + 1 * s, ground - 49 * s, 16 * s, 6 * s);
-    } else if (kind === "awning") {
-      bar(x, ground - 22 * s, 36 * s, 22 * s);
-      for (let i = 0; i < 4; i++) {
-        ctx.fillStyle = i % 2 ? acc : lerpC((th && th.wall && th.wall[0]) || "#121018", "#050508", 0.1);
-        bar(x + i * 9 * s, ground - 28 * s, 9 * s, 8 * s);
-      }
-    } else if (kind === "stack") {
-      bar(x, ground - 70 * s, 8 * s, 70 * s);
-      bar(x + 14 * s, ground - 52 * s, 7 * s, 52 * s);
-      ctx.fillStyle = hexA("#8890aa", 0.35 * (1 - k));
-      bar(x + 1 * s, ground - 78 * s, 6 * s, 8 * s);
-    } else if (kind === "wing") {
-      bar(x + 10 * s, ground - 48 * s, 8 * s, 48 * s);
-      ctx.beginPath();
-      ctx.moveTo(x - 24 * s, ground - 20 * s);
-      ctx.lineTo(x + 14 * s, ground - 28 * s);
-      ctx.lineTo(x + 14 * s, ground - 18 * s);
-      ctx.closePath(); ctx.fill();
-    } else if (kind === "pier") {
-      bar(x - 30 * s, ground - 8 * s, 70 * s, 5 * s);
-      bar(x - 22 * s, ground - 8 * s, 4 * s, 8 * s);
-      bar(x + 8 * s, ground - 8 * s, 4 * s, 8 * s);
-      bar(x + 30 * s, ground - 8 * s, 4 * s, 8 * s);
-    } else if (kind === "gate") {
-      bar(x, ground - 28 * s, 6 * s, 28 * s);
-      bar(x + 22 * s, ground - 28 * s, 6 * s, 28 * s);
-      bar(x - 4 * s, ground - 36 * s, 36 * s, 8 * s);
-    } else if (kind === "peak") {
-      tri(x - 20 * s, ground, x + 8 * s, ground - 64 * s, x + 36 * s, ground);
-      ctx.globalAlpha *= 0.7;
-      tri(x + 6 * s, ground, x + 28 * s, ground - 40 * s, x + 48 * s, ground);
-    } else if (kind === "blocks") {
-      bar(x, ground - 36 * s, 14 * s, 36 * s);
-      bar(x + 16 * s, ground - 24 * s, 12 * s, 24 * s);
-      bar(x + 30 * s, ground - 30 * s, 10 * s, 30 * s);
-    } else if (kind === "canopy") {
-      bar(x - 8 * s, ground - 26 * s, 44 * s, 6 * s);
-      bar(x + 4 * s, ground - 20 * s, 5 * s, 20 * s);
-      bar(x + 24 * s, ground - 20 * s, 5 * s, 20 * s);
-    } else if (kind === "wheel") {
-      ctx.strokeStyle = ctx.fillStyle;
-      ctx.lineWidth = 2 * s;
-      ctx.beginPath(); ctx.arc(x + 10 * s, ground - 28 * s, 26 * s, 0, Math.PI * 2); ctx.stroke();
-      bar(x + 8 * s, ground - 28 * s, 4 * s, 28 * s);
-    } else if (kind === "lantern") {
-      for (let i = 0; i < 3; i++) {
-        ctx.fillStyle = acc;
-        ctx.beginPath(); ctx.ellipse(x + i * 14 * s, ground - 36 * s, 5 * s, 7 * s, 0, 0, Math.PI * 2); ctx.fill();
-        ctx.fillStyle = lerpC((th && th.wall && th.wall[0]) || "#121018", "#050508", 0.2);
-        bar(x + i * 14 * s - 1, ground - 50 * s, 2, 14 * s);
-      }
-    } else {
-      bar(x, ground - 70 * s, 10 * s, 70 * s);
-      tri(x - 8 * s, ground - 54 * s, x + 5 * s, ground - 84 * s, x + 18 * s, ground - 54 * s);
-    }
-    ctx.restore();
+    // keep silhouette in the sky band if there is room
+    if (ground - s < 12) ground = Math.min(ground + (s - ground + 16), (geo.oy || 80) - 2);
+    const lit = 1 - (k || 0) * 0.75;
+    window.NightLandmarks.draw(ctx, type, cx, ground, s, {
+      wall: (th && th.wall && th.wall[0]) || "#0a0c14",
+      accent: (th && th.accent) || "#ffd56a",
+      lit: special ? Math.max(0.25, lit) : Math.max(0.15, lit * 0.7),
+    });
   }
 
   function drawMechOverlay() {
@@ -2032,22 +2072,7 @@
         ctx.restore();
       }
     }
-    // preview highlights
-    if (preview) {
-      ctx.save();
-      if (preview.waiting) {
-        ctx.fillStyle = "rgba(20,16,32,0.2)";
-        ctx.fillRect(ox, oy, LV.W * cs, LV.H * cs);
-      } else {
-        preview.cells.forEach(([x, y]) => {
-          ctx.strokeStyle = "#fff4c0";
-          ctx.lineWidth = 2;
-          ctx.globalAlpha = 0.9;
-          ctx.strokeRect(ox + x * cs + 1, oy + y * cs + 1, cs - 2, cs - 2);
-        });
-      }
-      ctx.restore();
-    }
+    // hold-to-preview no longer reveals whether the ticket can work.
   }
 
   /* ---------- loop ---------- */
@@ -2105,15 +2130,41 @@
   if ($("#albumBack")) $("#albumBack").onclick = openMenu;
   if ($("#cardClose")) $("#cardClose").onclick = () => { $("#cardView").hidden = true; };
   if ($("#introOk")) $("#introOk").onclick = dismissIntro;
+  if ($("#storyOk")) $("#storyOk").onclick = dismissStory;
+  if ($("#worldMap")) {
+    $("#worldMap").addEventListener("click", (ev) => {
+      const WW = window.NightWorld;
+      if (!WW) return;
+      const cv = $("#worldMap");
+      const r = cv.getBoundingClientRect();
+      const x = (ev.clientX - r.left) * (cv.width / r.width);
+      const y = (ev.clientY - r.top) * (cv.height / r.height);
+      let best = -1, bestD = 18;
+      WW.CITIES.forEach((city, i) => {
+        const p = projectCity(city, cv.width, cv.height);
+        const d = Math.hypot(p.x - x, p.y - y);
+        if (d < bestD) { bestD = d; best = i; }
+      });
+      if (best >= 0) {
+        const open = save.all || best * PAGE < save.unlocked || save.stars[best * PAGE] != null || best === 0;
+        if (open) { menuPage = best; renderMenu(); }
+        else toast("还没走到这座城", true);
+      }
+    });
+  }
 
   /* ---------- boot ---------- */
   seedStars();
-  solutions = C.LEVELS.map((L) => C.solve(L, 5));
-  solutions.forEach((s, i) => {
-    if (!s.ok) console.error("UNSOLVABLE", C.LEVELS[i].id);
-  });
-  renderMenu();
-  resize();
+  solutions = [];
+  function afterBank() {
+    renderMenu();
+    resize();
+  }
+  if (window.NIGHT_BANK_B64 && G && G.loadBankB64) {
+    G.loadBankB64(window.NIGHT_BANK_B64, window.NIGHT_BANK_META).then(afterBank).catch((e) => { console.warn(e); afterBank(); });
+  } else {
+    afterBank();
+  }
   requestAnimationFrame((t) => { lastT = t; requestAnimationFrame(frame); });
 
   window.__DEMO__ = {
@@ -2133,7 +2184,7 @@
       const r = C.solve(lv, 5);
       return r.path || [];
     },
-    skipCoach() { coach = null; const el = document.getElementById("coach"); if (el) el.hidden = true; const ic = document.getElementById("introCard"); if (ic) ic.hidden = true; },
+    skipCoach() { coach = null; const el = document.getElementById("coach"); if (el) el.hidden = true; const ic = document.getElementById("introCard"); if (ic) ic.hidden = true; const sc = document.getElementById("storyCard"); if (sc) sc.hidden = true; },
     openAlbum,
     setPage: (p) => { menuPage = p; renderMenu(); },
     preview: (ci) => startPreview(ci),

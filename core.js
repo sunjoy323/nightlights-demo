@@ -1114,11 +1114,293 @@
 
   applyPlans();
 
+  const KIND_CODE = { shutter:1, zone:2, button:3, breaker:4, key:5, switch:6, screen:7, lantern:7 };
+  const KIND_NAME = ["", "shutter", "zone", "button", "breaker", "key", "switch", "screen"];
+
+  function ticketSig(t) {
+    if (!t) return "";
+    return t.c + (t.duo ? "D" : "") + (t.hidden ? "H" : "");
+  }
+
+  function legalMoves(cols, slots, slotCount) {
+    const out = [];
+    for (let i = 0; i < cols.length; i++) {
+      if (cols[i][0] && canPlaceTicket(slots, slotCount, cols[i][0])) out.push(i);
+    }
+    return out;
+  }
+
+  function gateColorSet(grid) {
+    const s = new Set();
+    if (!grid) return s;
+    for (const row of grid) for (const c of row) {
+      if (c && (c.key || (c.awaken && c.awaken.length))) s.add(c.c);
+    }
+    return s;
+  }
+
+  function decisionSig(cols, slots, slotCount, chosen, gateSet) {
+    const legal = legalMoves(cols, slots, slotCount);
+    const sig = (t) => {
+      if (!t) return "";
+      if (gateSet && gateSet.has(t.c)) return "K" + t.c + (t.duo ? "D" : "");
+      return "W";
+    };
+    const groups = new Set(legal.map((i) => sig(cols[i][0])));
+    if (groups.size <= 1) return null;
+    return sig(cols[chosen][0]);
+  }
+
+  function keyPathOf(level, path, slotCount) {
+    const gateSet = gateColorSet(level.grid);
+    let grid = cloneGrid(level.grid);
+    let cols = cloneCols(level.cols);
+    let slots = Array(slotCount).fill(null);
+    let unlocked = { ...(level.unlocked || {}) };
+    let takes = 0;
+    const keys = [];
+    for (const ci of path) {
+      saturate(grid, slots, unlocked, takes);
+      const d = decisionSig(cols, slots, slotCount, ci, gateSet);
+      if (d) keys.push(d);
+      if (!place(cols, slots, ci, slotCount)) break;
+      takes++;
+    }
+    return keys.join(">");
+  }
+
+  function countSolutions(level, slotCount, opts) {
+    const maxVisits = (opts && opts.maxVisits) || 80000;
+    const maxSol = (opts && opts.maxSol) || 16;
+    const grid0 = cloneGrid(level.grid);
+    const cols0 = cloneCols(level.cols);
+    const slots0 = Array(slotCount).fill(null);
+    const unlocked0 = { ...(level.unlocked || {}) };
+    const seen = new Set();
+    const paths = [];
+    const keySet = new Set();
+    let visits = 0;
+    let truncated = false;
+
+    function dfs(grid, cols, slots, unlocked, takes, path) {
+      if (paths.length >= maxSol) { truncated = true; return; }
+      if (++visits > maxVisits) { truncated = true; return; }
+      saturate(grid, slots, unlocked, takes);
+      if (isWon(grid)) {
+        const p = path.slice();
+        paths.push(p);
+        keySet.add(keyPathOf(level, p, slotCount));
+        return;
+      }
+      if (isLost(grid, cols, slots, slotCount, unlocked, takes)) return;
+      const key = stateKey(grid, cols, slots, unlocked, takes);
+      if (seen.has(key)) return;
+      seen.add(key);
+      for (let i = 0; i < cols.length; i++) {
+        if (!cols[i].length) continue;
+        const g2 = cloneGrid(grid);
+        const c2 = cloneCols(cols);
+        const s2 = cloneSlots(slots);
+        const u2 = { ...unlocked };
+        if (!place(c2, s2, i, slotCount)) continue;
+        dfs(g2, c2, s2, u2, takes + 1, path.concat(i));
+        if (truncated && paths.length >= maxSol) return;
+      }
+    }
+
+    dfs(grid0, cols0, slots0, unlocked0, 0, []);
+    return {
+      count: paths.length,
+      truncated,
+      visits,
+      paths,
+      keyCount: keySet.size,
+      keys: [...keySet],
+      unique: paths.length === 1,
+      keyUnique: keySet.size === 1 && paths.length >= 1,
+    };
+  }
+
+  function randomPlayouts(level, slotCount, trials, seed) {
+    let rng = (seed == null ? 1 : seed) >>> 0;
+    const rnd = () => { rng = (Math.imul(rng, 1664525) + 1013904223) >>> 0; return rng / 4294967296; };
+    let wins = 0;
+    for (let t = 0; t < trials; t++) {
+      let grid = cloneGrid(level.grid);
+      let cols = cloneCols(level.cols);
+      let slots = Array(slotCount).fill(null);
+      let unlocked = { ...(level.unlocked || {}) };
+      let takes = 0, ok = false;
+      for (let g = 0; g < 250; g++) {
+        saturate(grid, slots, unlocked, takes);
+        if (isWon(grid)) { ok = true; break; }
+        if (isLost(grid, cols, slots, slotCount, unlocked, takes)) break;
+        const legal = legalMoves(cols, slots, slotCount);
+        if (!legal.length) break;
+        place(cols, slots, legal[(rnd() * legal.length) | 0], slotCount);
+        takes++;
+      }
+      if (ok) wins++;
+    }
+    return { wins, trials, rate: trials ? wins / trials : 0 };
+  }
+
+  function stampMask(g, x0, y0, mask, opt) {
+    opt = opt || {};
+    const H = g.length, W = g[0].length;
+    const rows = mask.map((r) => (typeof r === "string" ? r : r.join("")));
+    const mh = rows.length, mw = rows.reduce((m, r) => Math.max(m, r.length), 0);
+    const colors = opt.colors || [opt.border || 0, opt.fill == null ? (opt.border || 0) : opt.fill];
+    const cells = [];
+    for (let y = 0; y < mh; y++) {
+      for (let x = 0; x < mw; x++) {
+        const ch = rows[y][x];
+        if (!ch || ch === "." || ch === " " || ch === "0") continue;
+        const gx = x0 + x, gy = y0 + y;
+        if (gx < 0 || gy < 0 || gx >= W || gy >= H) continue;
+        let c = colors[0];
+        if (ch >= "1" && ch <= "9") c = colors[(ch.charCodeAt(0) - 49) % colors.length];
+        else {
+          const edge = x === 0 || y === 0 || x === mw - 1 || y === mh - 1
+            || !rows[y][x - 1] || rows[y][x - 1] === " " || rows[y][x - 1] === "."
+            || !rows[y][x + 1] || rows[y][x + 1] === " " || rows[y][x + 1] === "."
+            || !rows[y - 1] || !rows[y - 1][x] || rows[y - 1][x] === " " || rows[y - 1][x] === "."
+            || !rows[y + 1] || !rows[y + 1][x] || rows[y + 1][x] === " " || rows[y + 1][x] === ".";
+          c = edge ? colors[0] : (colors[1] != null ? colors[1] : colors[0]);
+          if (opt.band && colors[2] != null) {
+            const band = (y / mh);
+            if (band < (opt.band[0] || 0.25)) c = colors[2];
+          }
+        }
+        const cell = { c, on: true };
+        if (opt.lock) cell.lock = opt.lock;
+        if (opt.kind) cell.kind = opt.kind;
+        g[gy][gx] = cell;
+        cells.push([gx, gy]);
+      }
+    }
+    return { w: mw, h: mh, cells };
+  }
+
+  function packLevel(lv) {
+    const W = lv.W, H = lv.H;
+    const lockIds = [];
+    const idxOf = (id) => {
+      if (!id) return 0;
+      let i = lockIds.indexOf(id);
+      if (i < 0) { if (lockIds.length >= 7) return 0; lockIds.push(id); i = lockIds.length; }
+      else i = i + 1;
+      return i;
+    };
+    const bytes = [W & 255, H & 255];
+    const awakens = [];
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const c = lv.grid[y][x];
+        if (!c) { bytes.push(0, 0); continue; }
+        const kind = KIND_CODE[c.kind] || 0;
+        let u = 1;
+        u |= (c.c & 7) << 1;
+        if (c.blink) u |= 16;
+        if (c.dormant) u |= 32;
+        if (c.on) u |= 64;
+        u |= (idxOf(c.lock) & 7) << 7;
+        u |= (idxOf(c.key) & 7) << 10;
+        u |= (kind & 7) << 13;
+        bytes.push(u & 255, (u >> 8) & 255);
+        if (c.awaken && c.awaken.length) awakens.push({ x, y, cells: c.awaken });
+      }
+    }
+    const cols = lv.cols || [];
+    bytes.push(cols.length & 255);
+    for (const col of cols) {
+      bytes.push(col.length & 255);
+      for (const t of col) {
+        let f = (t.c & 7);
+        if (t.duo) f |= 8;
+        if (t.hidden) f |= 16;
+        bytes.push(f, t.n & 255);
+      }
+    }
+    bytes.push(awakens.length & 255);
+    for (const a of awakens) {
+      bytes.push(a.x & 255, a.y & 255, a.cells.length & 255);
+      for (const [x, y] of a.cells) bytes.push(x & 255, y & 255);
+    }
+    return bytes;
+  }
+
+  function unpackLevel(bytes, meta) {
+    let i = 0;
+    const W = bytes[i++], H = bytes[i++];
+    const g = emptyGrid(W, H);
+    const lockName = (k) => (k ? "K" + k : null);
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const u = bytes[i] | (bytes[i + 1] << 8); i += 2;
+        if (!(u & 1)) continue;
+        const cell = {
+          c: (u >> 1) & 7,
+          blink: !!(u & 16),
+          dormant: !!(u & 32),
+          on: !!(u & 64),
+        };
+        const lock = (u >> 7) & 7;
+        const key = (u >> 10) & 7;
+        const kind = (u >> 13) & 7;
+        if (lock) cell.lock = lockName(lock);
+        if (key) cell.key = lockName(key);
+        if (kind) cell.kind = KIND_NAME[kind] || null;
+        g[y][x] = cell;
+      }
+    }
+    const nCol = bytes[i++];
+    const cols = [];
+    let tid = 1;
+    for (let c = 0; c < nCol; c++) {
+      const nT = bytes[i++];
+      const col = [];
+      for (let t = 0; t < nT; t++) {
+        const f = bytes[i++], n = bytes[i++];
+        const tk = { c: f & 7, n, id: tid++ };
+        if (f & 8) tk.duo = true;
+        if (f & 16) tk.hidden = true;
+        col.push(tk);
+      }
+      cols.push(col);
+    }
+    const nAw = bytes[i++];
+    for (let a = 0; a < nAw; a++) {
+      const sx = bytes[i++], sy = bytes[i++], n = bytes[i++];
+      const cells = [];
+      for (let k = 0; k < n; k++) cells.push([bytes[i++], bytes[i++]]);
+      if (g[sy] && g[sy][sx]) g[sy][sx].awaken = cells;
+    }
+    meta = meta || {};
+    return {
+      id: meta.id || ("lv-" + (meta.n || 0)),
+      name: meta.name || "",
+      hint: meta.hint || "",
+      tier: meta.tier || "",
+      W, H, grid: g, cols, unlocked: {},
+      coach: !!meta.coach,
+      mechanic: meta.mechanic || null,
+      mechs: meta.mechs || [],
+      theme: meta.theme || "",
+      water: !!meta.water,
+      quote: meta.quote || "",
+      n: meta.n || 0,
+      ...meta,
+    };
+  }
+
   const api = {
     COLORS, LEVELS, emptyGrid, cloneGrid, cloneCols, cloneSlots,
-    stampBuilding, countOn, countNeed, isOpen, isReachable, findTarget, turnOff,
+    stampBuilding, stampMask, countOn, countNeed, isOpen, isReachable, findTarget, turnOff,
     saturate, leftCount, canTake, canPlaceTicket, place, frontsUseful, isWon, isLost,
     solve, greedySolve, leftmostSolve, ticketSumsOk, T,
+    countSolutions, randomPlayouts, keyPathOf, ticketSig, legalMoves,
+    packLevel, unpackLevel,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.NightCore = api;

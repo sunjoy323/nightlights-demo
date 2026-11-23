@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="UTF-8"/>
+<title>地标剪影自查</title>
+<style>
+  body { margin:0; background:#07061a; color:#f3efe4; font: 14px/1.4 sans-serif; }
+  h1 { text-align:center; font-size:18px; margin:12px 0 4px; }
+  p { text-align:center; color:#8a84a8; margin:0 0 12px; }
+  #grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; padding:8px 10px 24px; }
+  figure { margin:0; background:#0a1020; border-radius:12px; overflow:hidden; }
+  canvas { display:block; width:100%; height:auto; background:#0a1020; }
+  figcaption { padding:6px 8px 8px; font-size:12px; color:#ffd56a; }
+</style>
+</head>
+<body>
+<h1>环球电工 · 25 座城地标剪影</h1>
+<p>只看剪影能不能一眼认出是哪座。认不出就重画。</p>
+<div id="grid"></div>
+<script src="../world.js"></script>
+<script src="../landmarks.js"></script>
+<script>
+const cities = NightWorld.CITIES;
+const grid = document.getElementById("grid");
+cities.forEach((city) => {
+  const fig = document.createElement("figure");
+  const cv = document.createElement("canvas");
+  cv.width = 390; cv.height = 280;
+  const c = cv.getContext("2d");
+  const g = c.createLinearGradient(0,0,0,cv.height);
+  g.addColorStop(0, city.sky0); g.addColorStop(0.55, city.sky1); g.addColorStop(1, city.sky2);
+  c.fillStyle = g; c.fillRect(0,0,cv.width,cv.height);
+  c.fillStyle = "rgba(255,255,255,.55)";
+  for (let i=0;i<24;i++) c.fillRect((i*53)%390, (i*37)%120, 1.6, 1.6);
+  NightLandmarks.draw(c, city.landmark, 195, 250, 200, { wall: city.wall[0], accent: city.accent, lit: 0.85 });
+  const cap = document.createElement("figcaption");
+  cap.textContent = city.name + " · " + city.landmarkName + " (" + city.landmark + ")";
+  fig.append(cv, cap);
+  grid.appendChild(fig);
+});
+</script>
+</body></html>

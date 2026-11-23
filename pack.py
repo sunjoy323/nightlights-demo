@@ -1,140 +1,161 @@
 #!/usr/bin/env python3
-"""Pack core.js + gen.js + game.js + style.css into a self-contained index.html."""
+"""Pack core + world + landmarks + gen + bank + game + css into a self-contained index.html."""
 from pathlib import Path
 root = Path(__file__).resolve().parent
-core = (root / "core.js").read_text()
-gen = (root / "gen.js").read_text()
-css = (root / "style.css").read_text()
-js = (root / "game.js").read_text()
+
+def read(name, default=""):
+    p = root / name
+    return p.read_text() if p.exists() else default
+
+core = read("core.js")
+world = read("world.js")
+landmarks = read("landmarks.js")
+gen = read("gen.js")
+bank = read("levels-bank.js")
+css = read("style.css")
+js = read("game.js")
+if not bank.strip():
+    print("WARN: levels-bank.js missing or empty; packing without a bank")
+
 fav = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect fill='%2307061a' width='32' height='32' rx='6'/%3E%3Ccircle cx='20' cy='12' r='7' fill='%23ffd56a'/%3E%3Ccircle cx='16' cy='10' r='6' fill='%2307061a'/%3E%3Crect x='8' y='20' width='3' height='3' fill='%23ffd56a'/%3E%3Crect x='13' y='20' width='3' height='3' fill='%237ee7ff'/%3E%3Crect x='18' y='20' width='3' height='3' fill='%23ff8ab8'/%3E%3C/svg%3E"
-html = f"""<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#07061a" />
-  <link rel="icon" href="{fav}" />
-  <title>夜灯将眠</title>
-  <style>
-{css}
-  </style>
-</head>
-<body>
-  <div id="app">
-    <section id="menu">
-      <div class="brand">
-        <h1 id="brandTitle">夜灯将眠</h1>
-        <p>把通明的城市，一盏盏关掉</p>
-        <p id="progress"></p>
-      </div>
-      <div class="menu-bar">
-        <button class="btn ghost" id="albumBtn" type="button">夜景图鉴</button>
-        <div id="pager">
-          <button class="btn ghost" id="pagePrev" type="button">上一章</button>
-          <span id="pageLab">第 1 章</span>
-          <button class="btn ghost" id="pageNext" type="button">下一章</button>
-        </div>
-      </div>
-      <div id="levels"></div>
-    </section>
 
-    <section id="album" hidden>
-      <div class="brand">
-        <button class="icon" id="albumBack" type="button">←</button>
-        <h1>夜景图鉴</h1>
-        <p id="albumProg">把关掉的城市，收成明信片</p>
-      </div>
-      <div id="postcards"></div>
-      <div id="cardView" class="modal" hidden>
-        <div class="panel postcard-view">
-          <canvas id="cardCanvas" width="320" height="200"></canvas>
-          <div id="cardStars"></div>
-          <h2 id="cardName"></h2>
-          <p id="cardQuote"></p>
-          <button class="btn primary" id="cardClose" type="button">收回册子</button>
-        </div>
-      </div>
-    </section>
-
-    <section id="game" hidden>
-      <div class="hud">
-        <button class="icon" id="backBtn" aria-label="返回">←</button>
-        <div class="titles"><span id="lvNo"></span><span id="lvName"></span></div>
-        <div class="stat"><em>剩余</em><span id="leftV">0</span></div>
-        <button class="tool" id="speedBtn" type="button">▶ 1×</button>
-        <button class="tool" id="soundBtn" type="button">♪</button>
-      </div>
-      <div id="loadRail"><i id="loadFill"></i></div>
-      <div id="stage">
-        <canvas id="board"></canvas>
-        <div id="toast"></div>
-        <div id="slots"></div>
-        <div id="coach" hidden></div>
-        <div id="introCard" hidden>
-          <div class="intro-panel">
-            <div class="intro-anim" id="introAnim"></div>
-            <h3 id="introTitle"></h3>
-            <p id="introLine"></p>
-            <button class="btn primary" id="introOk" type="button">知道了</button>
-          </div>
-        </div>
-        <div id="fx"></div>
-      </div>
-      <div id="tray"></div>
-
-      <div id="loseBox" class="modal" hidden>
-        <div class="panel">
-          <div class="en">GRID OVERLOAD</div>
-          <h2 style="color:#ff6b8a">电网过载了</h2>
-          <p>电闸里的颜色都还没露出来，小电工无处下手。</p>
-          <button class="btn primary" id="loseRw" type="button">◀ 时光倒流</button>
-          <div class="row" style="margin-top:8px">
-            <button class="btn ghost" id="loseMenu" type="button">菜单</button>
-            <button class="btn" id="loseRetry" type="button">重新开始</button>
-            <button class="btn" id="loseAd" type="button">看广告加一个槽</button>
-          </div>
-          <div class="note">时光倒流会退回最近几步，每关一次。广告是演示用的倒计时，不会真的播放。</div>
-        </div>
-      </div>
-
-      <div id="winBox" class="modal" hidden>
-        <div class="panel">
-          <div class="en">CITY ASLEEP</div>
-          <h2 id="winTitle">晚安</h2>
-          <div id="winStars">★★★</div>
-          <p id="winSub">城市已入睡</p>
-          <div class="row">
-            <button class="btn ghost" id="winAlbum" type="button">看图鉴</button>
-            <button class="btn ghost" id="winMenu" type="button">菜单</button>
-            <button class="btn" id="winRetry" type="button">再关一次</button>
-            <button class="btn primary" id="winNext" type="button" style="min-width:0;flex:1">下一关</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="adBox" class="modal" hidden>
-        <div class="panel">
-          <div class="en">SIMULATED AD</div>
-          <h2>模拟广告</h2>
-          <p>这是演示用的倒计时，不是真广告。</p>
-          <div id="adSec">5</div>
-          <button class="btn ghost" id="adSkip" type="button">跳过并获得槽位</button>
-        </div>
-      </div>
-    </section>
-  </div>
-  <script id="core">
-{core}
-  </script>
-  <script id="gen">
-{gen}
-  </script>
-  <script>
-{js}
-  </script>
-</body>
-</html>
-"""
-(root / "index.html").write_text(html)
-print("wrote", root / "index.html", (root / "index.html").stat().st_size, "bytes")
+# Do not use an f-string for JS/CSS/bank (they contain curly braces).
+html = (
+    "<!DOCTYPE html>\n"
+    "<html lang=\"zh-CN\">\n"
+    "<head>\n"
+    "  <meta charset=\"UTF-8\" />\n"
+    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no\" />\n"
+    "  <meta name=\"apple-mobile-web-app-capable\" content=\"yes\" />\n"
+    "  <meta name=\"theme-color\" content=\"#07061a\" />\n"
+    "  <link rel=\"icon\" href=\"" + fav + "\" />\n"
+    "  <title>夜灯将眠</title>\n"
+    "  <style>\n" + css + "\n  </style>\n"
+    "</head>\n"
+    "<body>\n"
+    "  <div id=\"app\">\n"
+    "    <div id=\"appToast\" hidden></div>\n"
+    "    <section id=\"menu\">\n"
+    "      <div class=\"brand\">\n"
+    "        <h1 id=\"brandTitle\">夜灯将眠</h1>\n"
+    "        <p>环球电工 · 把灯关了，好让城市看见星空</p>\n"
+    "        <p id=\"progress\"></p>\n"
+    "      </div>\n"
+    "      <canvas id=\"worldMap\" width=\"390\" height=\"170\"></canvas>\n"
+    "      <p id=\"chapterLine\"></p>\n"
+    "      <div class=\"menu-bar\">\n"
+    "        <button class=\"btn ghost\" id=\"albumBtn\" type=\"button\">夜景图鉴</button>\n"
+    "        <div id=\"pager\">\n"
+    "          <button class=\"btn ghost\" id=\"pagePrev\" type=\"button\">上一章</button>\n"
+    "          <span id=\"pageLab\">第 1 章</span>\n"
+    "          <button class=\"btn ghost\" id=\"pageNext\" type=\"button\">下一章</button>\n"
+    "        </div>\n"
+    "      </div>\n"
+    "      <div id=\"levels\"></div>\n"
+    "    </section>\n"
+    "\n"
+    "    <section id=\"album\" hidden>\n"
+    "      <div class=\"brand\">\n"
+    "        <button class=\"icon\" id=\"albumBack\" type=\"button\">←</button>\n"
+    "        <h1>夜景图鉴</h1>\n"
+    "        <p id=\"albumProg\">把关掉的夜景，收成明信片</p>\n"
+    "      </div>\n"
+    "      <div id=\"albumCities\"></div>\n"
+    "      <div id=\"postcards\"></div>\n"
+    "      <div id=\"cardView\" class=\"modal\" hidden>\n"
+    "        <div class=\"panel postcard-view\">\n"
+    "          <canvas id=\"cardCanvas\" width=\"320\" height=\"200\"></canvas>\n"
+    "          <div id=\"cardStars\"></div>\n"
+    "          <h2 id=\"cardName\"></h2>\n"
+    "          <p id=\"cardQuote\"></p>\n"
+    "          <button class=\"btn primary\" id=\"cardClose\" type=\"button\">收回册子</button>\n"
+    "        </div>\n"
+    "      </div>\n"
+    "    </section>\n"
+    "\n"
+    "    <section id=\"game\" hidden>\n"
+    "      <div class=\"hud\">\n"
+    "        <button class=\"icon\" id=\"backBtn\" aria-label=\"返回\">←</button>\n"
+    "        <div class=\"titles\"><span id=\"lvNo\"></span><span id=\"lvName\"></span></div>\n"
+    "        <div class=\"stat\"><em>剩余</em><span id=\"leftV\">0</span></div>\n"
+    "        <button class=\"tool\" id=\"speedBtn\" type=\"button\">▶ 1×</button>\n"
+    "        <button class=\"tool\" id=\"soundBtn\" type=\"button\">♪</button>\n"
+    "      </div>\n"
+    "      <div id=\"loadRail\"><i id=\"loadFill\"></i></div>\n"
+    "      <div id=\"stage\">\n"
+    "        <canvas id=\"board\"></canvas>\n"
+    "        <div id=\"toast\"></div>\n"
+    "        <div id=\"slots\"></div>\n"
+    "        <div id=\"coach\" hidden></div>\n"
+    "        <div id=\"introCard\" hidden>\n"
+    "          <div class=\"intro-panel\">\n"
+    "            <div class=\"intro-anim\" id=\"introAnim\"></div>\n"
+    "            <h3 id=\"introTitle\"></h3>\n"
+    "            <p id=\"introLine\"></p>\n"
+    "            <button class=\"btn primary\" id=\"introOk\" type=\"button\">知道了</button>\n"
+    "          </div>\n"
+    "        </div>\n"
+    "        <div id=\"storyCard\" hidden>\n"
+    "          <div class=\"intro-panel\">\n"
+    "            <div class=\"en\" style=\"color:#8a5a20;letter-spacing:0.12em;font-size:11px;margin-bottom:6px\">NIGHT SHIFT</div>\n"
+    "            <h3 id=\"storyTitle\"></h3>\n"
+    "            <p id=\"storyLine\"></p>\n"
+    "            <button class=\"btn primary\" id=\"storyOk\" type=\"button\">开始关灯</button>\n"
+    "          </div>\n"
+    "        </div>\n"
+    "        <div id=\"fx\"></div>\n"
+    "      </div>\n"
+    "      <div id=\"tray\"></div>\n"
+    "\n"
+    "      <div id=\"loseBox\" class=\"modal\" hidden>\n"
+    "        <div class=\"panel\">\n"
+    "          <div class=\"en\">GRID OVERLOAD</div>\n"
+    "          <h2 style=\"color:#ff6b8a\">电网过载了</h2>\n"
+    "          <p>电闸里的颜色都还没露出来，小电工无处下手。</p>\n"
+    "          <button class=\"btn primary\" id=\"loseRw\" type=\"button\">◀ 时光倒流</button>\n"
+    "          <div class=\"row\" style=\"margin-top:8px\">\n"
+    "            <button class=\"btn ghost\" id=\"loseMenu\" type=\"button\">菜单</button>\n"
+    "            <button class=\"btn\" id=\"loseRetry\" type=\"button\">重新开始</button>\n"
+    "            <button class=\"btn\" id=\"loseAd\" type=\"button\">看广告加一个槽</button>\n"
+    "          </div>\n"
+    "          <div class=\"note\">时光倒流会退回最近几步，每关一次。广告是演示用的倒计时，不会真的播放。</div>\n"
+    "        </div>\n"
+    "      </div>\n"
+    "\n"
+    "      <div id=\"winBox\" class=\"modal\" hidden>\n"
+    "        <div class=\"panel\">\n"
+    "          <div class=\"en\">CITY ASLEEP</div>\n"
+    "          <h2 id=\"winTitle\">晚安</h2>\n"
+    "          <div id=\"winStars\">★★★</div>\n"
+    "          <p id=\"winSub\">城市已入睡</p>\n"
+    "          <div class=\"row\">\n"
+    "            <button class=\"btn ghost\" id=\"winAlbum\" type=\"button\">看图鉴</button>\n"
+    "            <button class=\"btn ghost\" id=\"winMenu\" type=\"button\">菜单</button>\n"
+    "            <button class=\"btn\" id=\"winRetry\" type=\"button\">再关一次</button>\n"
+    "            <button class=\"btn primary\" id=\"winNext\" type=\"button\" style=\"min-width:0;flex:1\">下一关</button>\n"
+    "          </div>\n"
+    "        </div>\n"
+    "      </div>\n"
+    "\n"
+    "      <div id=\"adBox\" class=\"modal\" hidden>\n"
+    "        <div class=\"panel\">\n"
+    "          <h2>模拟广告</h2>\n"
+    "          <p>这是演示用的倒计时，不是真广告。</p>\n"
+    "          <div id=\"adSec\">5</div>\n"
+    "          <button class=\"btn ghost\" id=\"adSkip\" type=\"button\">跳过并获得槽位</button>\n"
+    "        </div>\n"
+    "      </div>\n"
+    "    </section>\n"
+    "  </div>\n"
+    "  <script id=\"core\">\n" + core + "\n  </script>\n"
+    "  <script id=\"world\">\n" + world + "\n  </script>\n"
+    "  <script id=\"landmarks\">\n" + landmarks + "\n  </script>\n"
+    "  <script id=\"gen\">\n" + gen + "\n  </script>\n"
+    "  <script id=\"bank\">\n" + bank + "\n  </script>\n"
+    "  <script>\n" + js + "\n  </script>\n"
+    "</body>\n"
+    "</html>\n"
+)
+out = root / "index.html"
+out.write_text(html)
+print("wrote", out, out.stat().st_size, "bytes; bank", len(bank), "chars")
