@@ -473,6 +473,7 @@
     grid = C.cloneGrid(s.grid);
     cols = C.cloneCols(s.cols);
     slots = C.cloneSlots(s.slots);
+    for (const sl of slots) if (sl) { sl._busy = false; sl._wait = false; }
     unlocked = { ...s.unlocked };
     slotCount = s.slotCount;
     takes = s.takes || 0;
@@ -736,6 +737,7 @@
 
     for (let i = 0; i < slotCount; i++) {
       const s = slots[i];
+      if (s && s._busy && !workers.some((w) => w.si === i)) s._busy = false;
       if (!s || s.n <= 0 || s._busy || s.hold) continue;
       const t = C.findTarget(grid, s.c, unlocked, takes);
       if (!t) {
